@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
+	"path/filepath"
 
 	"github.com/iac-reconciler/tf-aws-config/pkg/compare"
 	"github.com/iac-reconciler/tf-aws-config/pkg/load"
@@ -27,14 +29,21 @@ func generate() *cobra.Command {
 			var (
 				tfstate []string
 				err     error
+				fsys    fs.FS
 			)
 			if tfRecursive {
-				tfstate, err = fs.Glob(os.DirFS(args[1]), "**/*.tfstate")
-				if err != nil {
+				fsys = os.DirFS(args[1])
+				if err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+					if filepath.Ext(path) == ".tfstate" {
+						tfstate = append(tfstate, path)
+					}
+					return nil
+				}); err != nil {
 					return err
 				}
 			} else {
-				tfstate = []string{args[1]}
+				fsys = os.DirFS(path.Dir(args[1]))
+				tfstate = []string{path.Base(args[1])}
 			}
 			// read the config file
 			f, err := os.Open(snapshotFile)
@@ -49,7 +58,7 @@ func generate() *cobra.Command {
 			// read the tfstate files
 			var tfstates []load.TerraformState
 			for _, tfstateFile := range tfstate {
-				f, err := os.Open(tfstateFile)
+				f, err := fsys.Open(tfstateFile)
 				if err != nil {
 					return fmt.Errorf("unable to open tfstate file %s: %w", tfstateFile, err)
 				}
