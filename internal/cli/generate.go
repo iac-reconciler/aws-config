@@ -65,13 +65,15 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to reconcile: %w", err)
 			}
-			fmt.Println(reconciled)
+			fmt.Printf("%+v\n", reconciled)
 			if doSummary {
 				summary, err := compare.Summarize(snapshot, tfstates)
 				if err != nil {
 					return fmt.Errorf("unable to generate summary: %w", err)
 				}
-				fmt.Println(summary)
+				if err := json.NewEncoder(os.Stdout).Encode(summary); err != nil {
+					return fmt.Errorf("unable to encode summary: %w", err)
+				}
 			}
 
 			// no error

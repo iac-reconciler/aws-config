@@ -7,8 +7,8 @@ import (
 // Summary struct holding summary information about the various resources.
 // This is expected to evolve over time.
 type Summary struct {
-	TerraformResources int
-	ConfigResources    int
+	TerraformResources int `json:"terraform_resource_count"`
+	ConfigResources    int `json:"config_resource_count"`
 }
 
 // Reconcile reconcile the snapshot and tfstates.
