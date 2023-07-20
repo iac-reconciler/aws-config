@@ -8,6 +8,7 @@ import (
 // This is expected to evolve over time.
 type Summary struct {
 	TerraformResources int `json:"terraform_resource_count"`
+	TerraformFiles     int `json:"terraform_file_count"`
 	ConfigResources    int `json:"config_resource_count"`
 }
 
@@ -21,5 +22,6 @@ func Summarize(snapshot load.Snapshot, tfstates []load.TerraformState) (results 
 	return &Summary{
 		ConfigResources:    len(snapshot.ConfigurationItems),
 		TerraformResources: tfResources,
+		TerraformFiles:     len(tfstates),
 	}, nil
 }
