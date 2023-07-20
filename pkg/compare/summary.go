@@ -16,7 +16,12 @@ type Summary struct {
 func Summarize(snapshot load.Snapshot, tfstates []load.TerraformState) (results *Summary, err error) {
 	var tfResources int
 	for _, tfstate := range tfstates {
-		tfResources += len(tfstate.Resources)
+		for _, resource := range tfstate.Resources {
+			if resource.Mode != load.TerraformManaged {
+				continue
+			}
+			tfResources += len(resource.Instances)
+		}
 	}
 	return &Summary{
 		ConfigResources:    len(snapshot.ConfigurationItems),

@@ -1,5 +1,9 @@
 package load
 
+const (
+	TerraformManaged = "managed"
+)
+
 type TerraformState struct {
 	Version          int
 	TerraformVersion string
