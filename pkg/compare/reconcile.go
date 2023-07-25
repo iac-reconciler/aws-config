@@ -6,9 +6,10 @@ import (
 )
 
 type Reconciled struct {
-	TerraformOnly []load.ConfigurationItem `json:"terraform_only"`
-	ConfigOnly    []load.ConfigurationItem `json:"config_only"`
-	Both          []load.ConfigurationItem `json:"both"`
+	TerraformOnly  []load.ConfigurationItem `json:"terraform_only"`
+	ConfigOnly     []load.ConfigurationItem `json:"config_only"`
+	Both           []load.ConfigurationItem `json:"both"`
+	TerraformFiles int                      `json:"terraform_file_count"`
 }
 
 // Reconcile reconcile the snapshot and tfstates.
@@ -155,5 +156,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 	}
+	results.TerraformFiles = len(tfstates)
 	return results, nil
 }

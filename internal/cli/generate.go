@@ -77,15 +77,7 @@ func generate() *cobra.Command {
 			fmt.Printf("Both: %d\n", len(reconciled.Both))
 			fmt.Printf("Terraform Only: %d\n", len(reconciled.TerraformOnly))
 			fmt.Printf("Config Only: %d\n", len(reconciled.ConfigOnly))
-			if doSummary {
-				summary, err := compare.Summarize(snapshot, tfstates)
-				if err != nil {
-					return fmt.Errorf("unable to generate summary: %w", err)
-				}
-				if err := json.NewEncoder(os.Stdout).Encode(summary); err != nil {
-					return fmt.Errorf("unable to encode summary: %w", err)
-				}
-			}
+			fmt.Printf("Terraform Files: %d\n", reconciled.TerraformFiles)
 
 			// no error
 			return nil
