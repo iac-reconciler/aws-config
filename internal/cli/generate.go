@@ -70,14 +70,18 @@ func generate() *cobra.Command {
 				tfstates[tfstateFile] = state
 			}
 			// all loaded, now run the reconcile
-			reconciled, err := compare.Reconcile(snapshot, tfstates)
+			items, err := compare.Reconcile(snapshot, tfstates)
 			if err != nil {
 				return fmt.Errorf("unable to reconcile: %w", err)
 			}
-			fmt.Printf("Both: %d\n", len(reconciled.Both))
-			fmt.Printf("Terraform Only: %d\n", len(reconciled.TerraformOnly))
-			fmt.Printf("Config Only: %d\n", len(reconciled.ConfigOnly))
-			fmt.Printf("Terraform Files: %d\n", reconciled.TerraformFiles)
+			summary, err := compare.Summarize(items)
+			if err != nil {
+				return fmt.Errorf("unable to summarize: %w", err)
+			}
+			fmt.Printf("Both: %d\n", summary.BothResources)
+			fmt.Printf("Terraform Resources: %d\n", summary.TerraformResources)
+			fmt.Printf("Config Resources: %d\n", summary.ConfigResources)
+			fmt.Printf("Terraform Files: %d\n", len(tfstates))
 
 			// no error
 			return nil

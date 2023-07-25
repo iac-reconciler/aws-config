@@ -5,16 +5,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Reconciled struct {
-	TerraformOnly  []load.ConfigurationItem `json:"terraform_only"`
-	ConfigOnly     []load.ConfigurationItem `json:"config_only"`
-	Both           []load.ConfigurationItem `json:"both"`
-	TerraformFiles int                      `json:"terraform_file_count"`
+type LocatedItem struct {
+	load.ConfigurationItem
+	Location string `json:"location"`
 }
 
 // Reconcile reconcile the snapshot and tfstates.
 // Not yet implemented, so returns an empty struct
-func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (results *Reconciled, err error) {
+func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []LocatedItem, err error) {
 	// first load each item into memory, referenced by resourceType, resourceId, ARN
 	var (
 		configTypeIdMap = make(map[string]map[string]*load.ConfigurationItem)
@@ -134,7 +132,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	}
 	// now we have all of the resources listed as in Terraform, Config or both
 	// so create the reconciled info
-	results = &Reconciled{}
 	for resourceType, locations := range itemToLocation {
 		for key, location := range locations {
 			var configItem *load.ConfigurationItem
@@ -146,16 +143,12 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				log.Errorf("could not find item %s in config maps", key)
 				continue
 			}
-			switch location {
-			case "terraform":
-				results.TerraformOnly = append(results.TerraformOnly, *configItem)
-			case "config":
-				results.ConfigOnly = append(results.ConfigOnly, *configItem)
-			case "both":
-				results.Both = append(results.Both, *configItem)
+			locatedItem := LocatedItem{
+				ConfigurationItem: *configItem,
+				Location:          location,
 			}
+			items = append(items, locatedItem)
 		}
 	}
-	results.TerraformFiles = len(tfstates)
-	return results, nil
+	return items, nil
 }
