@@ -21,14 +21,27 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		// the values are map[string]string
 		// in there, the keys are arn or id (if no arn), the values are location,
 		// one of "terraform", "config", "both"
-		itemToLocation = make(map[string]map[string]string)
+		itemToLocation      = make(map[string]map[string]string)
+		filteredConfigItems []*load.ConfigurationItem
 	)
 	for _, item := range snapshot.ConfigurationItems {
+		if item.ResourceType == configComplianceResourceType {
+			continue
+		}
+		if item.ResourceType == "" {
+			log.Warnf("AWS Config snapshot: empty resource type for item %s", item.ARN)
+			continue
+		}
 		if _, ok := configTypeIdMap[item.ResourceType]; !ok {
 			configTypeIdMap[item.ResourceType] = make(map[string]*load.ConfigurationItem)
 		}
-		configTypeIdMap[item.ResourceType][item.ResourceID] = &item
-		configArnMap[item.ARN] = &item
+		if item.ResourceID != "" {
+			configTypeIdMap[item.ResourceType][item.ResourceID] = &item
+		}
+		if item.ARN != "" {
+			configArnMap[item.ARN] = &item
+		}
+		filteredConfigItems = append(filteredConfigItems, &item)
 	}
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
 	// This would be easy if there were standards, but everything is driven by the provider,
@@ -114,11 +127,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		}
 	}
 	// go through config and see what is not covered already in terraform
-	for _, item := range snapshot.ConfigurationItems {
-		// we do not care about the "rules reporting resources" from AWS Config
-		if item.ResourceType == configComplianceResourceType {
-			continue
-		}
+	for _, item := range filteredConfigItems {
 		if _, ok := itemToLocation[item.ResourceType]; !ok {
 			itemToLocation[item.ResourceType] = make(map[string]string)
 		}
