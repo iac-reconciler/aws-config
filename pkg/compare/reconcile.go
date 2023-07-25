@@ -36,9 +36,11 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	// terraform itself has no standard or intelligence about it, so we need to know all of them.
 	for statefile, tfstate := range tfstates {
 		for i, resource := range tfstate.Resources {
+			// only care about managed resources
 			if resource.Mode != load.TerraformManaged {
 				continue
 			}
+			// only care about aws resources
 			if resource.Provider != "provider.aws" && resource.Provider != `provider["registry.terraform.io/hashicorp/aws"]"` {
 				continue
 			}
@@ -48,6 +50,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				ok         bool
 			)
 			if configType, ok = awsTerraformToConfigTypeMap[resource.Type]; !ok {
+				log.Warnf("unknown terraform resource type: %s", resource.Type)
 				continue
 			}
 			if _, ok := itemToLocation[configType]; !ok {
@@ -60,7 +63,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				var (
 					resourceId, arn, location string
 					item                      *load.ConfigurationItem
-					ok                        bool
 				)
 				// try by arn first
 				arnPtr := instance.Attributes["arn"]
@@ -72,46 +74,43 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					resourceId = resourceIdPtr.(string)
 				}
 				if arn != "" {
-					if item, ok = configArnMap[arn]; ok {
-						location = "both"
-					} else {
-						location = "terraform"
-					}
+					item = configArnMap[arn]
 				}
-				if resourceId != "" {
-					if item, ok = configTypeIdMap[configType][resourceId]; ok {
-						location = "both"
-					} else {
-						location = "terraform"
-					}
+				if item == nil && resourceId != "" {
+					item = configTypeIdMap[configType][resourceId]
 				}
+
+				// if we could not find it by ARN or by configType+id, then
+				// it is only in terraform
 				if item == nil {
+					location = "terraform"
 					item = &load.ConfigurationItem{
 						ResourceType: configType,
 						ResourceID:   resourceId,
 						ARN:          arn,
 					}
-				}
-				// if it only is in Terraform, then we do not have it in the maps
-				// so we need to add it for later reference
-				if location == "terraform" {
-					if item.ARN != "" {
-						configArnMap[item.ARN] = item
+					// if it only is in Terraform, then we do not have it in the maps
+					// so we need to add it for later reference
+					if arn != "" {
+						configArnMap[arn] = item
 					}
-					if item.ResourceID != "" {
-						configTypeIdMap[configType][item.ResourceID] = item
+					if resourceId != "" {
+						configTypeIdMap[configType][resourceId] = item
 					}
+				} else {
+					location = "both"
 				}
-				if location != "" {
+
+				if location == "" {
+					// no resource ID or arn, which shouldn't occur, so warn
+					log.Warnf("unable to find resource ID or ARN for resource %d, instance %d in file %s", i, j, statefile)
+				} else {
 					key := arn
 					if key == "" {
 						key = resourceId
 					}
 					itemToLocation[configType][key] = location
-					continue
 				}
-				// no resource ID or arn, which shouldn't occur, so warn
-				log.Warnf("unable to find resource ID or ARN for resource %d, instance %d in file %s", i, j, statefile)
 			}
 		}
 	}

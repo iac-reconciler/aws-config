@@ -74,7 +74,9 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to reconcile: %w", err)
 			}
-			fmt.Printf("%+v\n", reconciled)
+			fmt.Printf("Both: %d\n", len(reconciled.Both))
+			fmt.Printf("Terraform Only: %d\n", len(reconciled.TerraformOnly))
+			fmt.Printf("Config Only: %d\n", len(reconciled.ConfigOnly))
 			if doSummary {
 				summary, err := compare.Summarize(snapshot, tfstates)
 				if err != nil {
