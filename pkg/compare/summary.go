@@ -26,7 +26,7 @@ func Summarize(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	// we need to filter out compliance configuration items
 	var configResources int
 	for _, item := range snapshot.ConfigurationItems {
-		if item.ResourceType == "AWS::Config::ResourceCompliance" {
+		if item.ResourceType == configComplianceResourceType {
 			continue
 		}
 		configResources++
