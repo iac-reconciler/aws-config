@@ -7,23 +7,20 @@ import (
 
 type LocatedItem struct {
 	load.ConfigurationItem
-	terraform bool
-	config    bool
+	terraform  bool
+	config     bool
+	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
 // Reconcile reconcile the snapshot and tfstates.
 // Not yet implemented, so returns an empty struct
 func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
-	// first load each item into memory, referenced by resourceType, resourceId, ARN
-	var (
-		configTypeIdMap = make(map[string]map[string]*load.ConfigurationItem)
-		configArnMap    = make(map[string]*load.ConfigurationItem)
-		// the keys are resource types, using the AWS-Config keys;
-		// the values are map[string]string
-		// in there, the keys are arn or id (if no arn), the values are location,
-		// one of "terraform", "config", "both"
-		itemToLocation = make(map[string]map[string]*LocatedItem)
-	)
+	// the keys are resource types, using the AWS-Config keys;
+	// the values are map[string]*LocatedItem
+	// in there, the keys are arn or id (if no arn), the values are
+	// the LocatedItem, which includes marking where it was seen.
+	var itemToLocation = make(map[string]map[string]*LocatedItem)
+
 	for _, item := range snapshot.ConfigurationItems {
 		if item.ResourceType == configComplianceResourceType {
 			continue
@@ -32,14 +29,10 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			log.Warnf("AWS Config snapshot: empty resource type for item %s", item.ARN)
 			continue
 		}
-		if _, ok := configTypeIdMap[item.ResourceType]; !ok {
-			configTypeIdMap[item.ResourceType] = make(map[string]*load.ConfigurationItem)
-		}
-		if item.ResourceID != "" {
-			configTypeIdMap[item.ResourceType][item.ResourceID] = &item
-		}
-		if item.ARN != "" {
-			configArnMap[item.ARN] = &item
+		var mappedType = true
+		if _, ok := awsConfigToTerraformypeMap[item.ResourceType]; !ok {
+			log.Warnf("unknown AWS Config resource type: %s", item.ResourceType)
+			mappedType = false
 		}
 		if _, ok := itemToLocation[item.ResourceType]; !ok {
 			itemToLocation[item.ResourceType] = make(map[string]*LocatedItem)
@@ -51,6 +44,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		itemToLocation[item.ResourceType][key] = &LocatedItem{
 			ConfigurationItem: item,
 			config:            true,
+			mappedType:        mappedType,
 		}
 	}
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
@@ -70,10 +64,12 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			var (
 				configType string
 				ok         bool
+				mappedType = true
 			)
 			if configType, ok = awsTerraformToConfigTypeMap[resource.Type]; !ok {
 				log.Warnf("unknown terraform resource type: %s", resource.Type)
-				continue
+				configType = resource.Type
+				mappedType = false
 			}
 			if _, ok := itemToLocation[configType]; !ok {
 				itemToLocation[configType] = make(map[string]*LocatedItem)
@@ -112,6 +108,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							ResourceID:   resourceId,
 							ARN:          arn,
 						},
+						mappedType: mappedType,
 					}
 					itemToLocation[configType][key] = item
 				}
