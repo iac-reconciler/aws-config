@@ -56,7 +56,7 @@ func generate() *cobra.Command {
 				return fmt.Errorf("unable to decode snapshot file %s: %w", snapshotFile, err)
 			}
 			// read the tfstate files
-			var tfstates []load.TerraformState
+			var tfstates = make(map[string]load.TerraformState)
 			for _, tfstateFile := range tfstate {
 				f, err := fsys.Open(tfstateFile)
 				if err != nil {
@@ -67,7 +67,7 @@ func generate() *cobra.Command {
 				if err := json.NewDecoder(f).Decode(&state); err != nil {
 					return fmt.Errorf("unable to decode terraform state file %s: %w", tfstateFile, err)
 				}
-				tfstates = append(tfstates, state)
+				tfstates[tfstateFile] = state
 			}
 			// all loaded, now run the reconcile
 			reconciled, err := compare.Reconcile(snapshot, tfstates)

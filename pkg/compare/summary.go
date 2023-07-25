@@ -13,7 +13,7 @@ type Summary struct {
 }
 
 // Summarize summarize the information from the reconciliation.
-func Summarize(snapshot load.Snapshot, tfstates []load.TerraformState) (results *Summary, err error) {
+func Summarize(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (results *Summary, err error) {
 	var tfResources int
 	for _, tfstate := range tfstates {
 		for _, resource := range tfstate.Resources {
