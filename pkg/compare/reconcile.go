@@ -7,12 +7,13 @@ import (
 
 type LocatedItem struct {
 	load.ConfigurationItem
-	Location string `json:"location"`
+	terraform bool
+	config    bool
 }
 
 // Reconcile reconcile the snapshot and tfstates.
 // Not yet implemented, so returns an empty struct
-func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []LocatedItem, err error) {
+func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
 	// first load each item into memory, referenced by resourceType, resourceId, ARN
 	var (
 		configTypeIdMap = make(map[string]map[string]*load.ConfigurationItem)
@@ -21,8 +22,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		// the values are map[string]string
 		// in there, the keys are arn or id (if no arn), the values are location,
 		// one of "terraform", "config", "both"
-		itemToLocation      = make(map[string]map[string]string)
-		filteredConfigItems []*load.ConfigurationItem
+		itemToLocation = make(map[string]map[string]*LocatedItem)
 	)
 	for _, item := range snapshot.ConfigurationItems {
 		if item.ResourceType == configComplianceResourceType {
@@ -41,7 +41,17 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		if item.ARN != "" {
 			configArnMap[item.ARN] = &item
 		}
-		filteredConfigItems = append(filteredConfigItems, &item)
+		if _, ok := itemToLocation[item.ResourceType]; !ok {
+			itemToLocation[item.ResourceType] = make(map[string]*LocatedItem)
+		}
+		key := item.ARN
+		if key == "" {
+			key = item.ResourceID
+		}
+		itemToLocation[item.ResourceType][key] = &LocatedItem{
+			ConfigurationItem: item,
+			config:            true,
+		}
 	}
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
 	// This would be easy if there were standards, but everything is driven by the provider,
@@ -66,15 +76,13 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				continue
 			}
 			if _, ok := itemToLocation[configType]; !ok {
-				itemToLocation[configType] = make(map[string]string)
-			}
-			if _, ok := configTypeIdMap[configType]; !ok {
-				configTypeIdMap[configType] = make(map[string]*load.ConfigurationItem)
+				itemToLocation[configType] = make(map[string]*LocatedItem)
 			}
 			for j, instance := range resource.Instances {
 				var (
-					resourceId, arn, location string
-					item                      *load.ConfigurationItem
+					resourceId, arn string
+					item            *LocatedItem
+					key             string
 				)
 				// try by arn first
 				arnPtr := instance.Attributes["arn"]
@@ -86,77 +94,37 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					resourceId = resourceIdPtr.(string)
 				}
 				if arn != "" {
-					item = configArnMap[arn]
+					key = arn
+				} else if resourceId != "" {
+					key = resourceId
+				} else {
+					log.Warnf("unable to find resource ID or ARN for resource %d, instance %d in file %s", i, j, statefile)
+					continue
 				}
-				if item == nil && resourceId != "" {
-					item = configTypeIdMap[configType][resourceId]
-				}
+				item = itemToLocation[configType][key]
 
 				// if we could not find it by ARN or by configType+id, then
 				// it is only in terraform
 				if item == nil {
-					location = "terraform"
-					item = &load.ConfigurationItem{
-						ResourceType: configType,
-						ResourceID:   resourceId,
-						ARN:          arn,
+					item = &LocatedItem{
+						ConfigurationItem: load.ConfigurationItem{
+							ResourceType: configType,
+							ResourceID:   resourceId,
+							ARN:          arn,
+						},
 					}
-					// if it only is in Terraform, then we do not have it in the maps
-					// so we need to add it for later reference
-					if arn != "" {
-						configArnMap[arn] = item
-					}
-					if resourceId != "" {
-						configTypeIdMap[configType][resourceId] = item
-					}
-				} else {
-					location = "both"
+					itemToLocation[configType][key] = item
 				}
-
-				if location == "" {
-					// no resource ID or arn, which shouldn't occur, so warn
-					log.Warnf("unable to find resource ID or ARN for resource %d, instance %d in file %s", i, j, statefile)
-				} else {
-					key := arn
-					if key == "" {
-						key = resourceId
-					}
-					itemToLocation[configType][key] = location
-				}
+				item.terraform = true
 			}
 		}
 	}
-	// go through config and see what is not covered already in terraform
-	for _, item := range filteredConfigItems {
-		if _, ok := itemToLocation[item.ResourceType]; !ok {
-			itemToLocation[item.ResourceType] = make(map[string]string)
-		}
-		key := item.ARN
-		if key == "" {
-			key = item.ResourceID
-		}
-		if _, ok := itemToLocation[item.ResourceType][key]; !ok {
-			itemToLocation[item.ResourceType][key] = "config"
-		}
-	}
+
 	// now we have all of the resources listed as in Terraform, Config or both
 	// so create the reconciled info
-	for resourceType, locations := range itemToLocation {
-		for key, location := range locations {
-			var configItem *load.ConfigurationItem
-			if item, ok := configArnMap[key]; ok {
-				configItem = item
-			} else if item, ok := configTypeIdMap[resourceType][key]; ok {
-				configItem = item
-			} else {
-				log.Errorf("could not find item %s in config maps", key)
-				continue
-			}
-			locatedItem := LocatedItem{
-				ConfigurationItem: *configItem,
-				Location:          location,
-			}
-			items = append(items, locatedItem)
+	for _, locations := range itemToLocation {
+		for _, item := range locations {
+			items = append(items, item)
 		}
 	}
 	return items, nil

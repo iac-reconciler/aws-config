@@ -9,17 +9,16 @@ type Summary struct {
 }
 
 // Summarize summarize the information from the reconciliation.
-func Summarize(items []LocatedItem) (results *Summary, err error) {
+func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	results = &Summary{}
 	for _, item := range items {
-		switch item.Location {
-		case "terraform":
+		if item.terraform {
 			results.TerraformResources++
-		case "config":
+		}
+		if item.config {
 			results.ConfigResources++
-		case "both":
-			results.TerraformResources++
-			results.ConfigResources++
+		}
+		if item.config && item.terraform {
 			results.BothResources++
 		}
 	}
