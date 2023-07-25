@@ -23,8 +23,16 @@ func Summarize(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			tfResources += len(resource.Instances)
 		}
 	}
+	// we need to filter out compliance configuration items
+	var configResources int
+	for _, item := range snapshot.ConfigurationItems {
+		if item.ResourceType == "AWS::Config::ResourceCompliance" {
+			continue
+		}
+		configResources++
+	}
 	return &Summary{
-		ConfigResources:    len(snapshot.ConfigurationItems),
+		ConfigResources:    configResources,
 		TerraformResources: tfResources,
 		TerraformFiles:     len(tfstates),
 	}, nil
