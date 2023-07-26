@@ -3,24 +3,26 @@ package compare
 import "sort"
 
 type ResourceTypeCount struct {
-	ResourceType string `json:"resource_type"`
-	Count        int    `json:"count"`
+	ResourceType string
+	Count        int
 }
 
 type SourceSummary struct {
-	Name          string              `json:"source"`
-	Total         int                 `json:"count"`
-	Unmapped      []ResourceTypeCount `json:"unmapped"`
-	UnmappedCount int                 `json:"unmapped_count"`
-	Only          []ResourceTypeCount `json:"only"`
-	OnlyCount     int                 `json:"only_count"`
+	Name            string
+	Total           int
+	Unmapped        []ResourceTypeCount
+	UnmappedCount   int
+	Only            []ResourceTypeCount
+	OnlyCount       int
+	OnlyMapped      []ResourceTypeCount
+	OnlyMappedCount int
 }
 
 // Summary struct holding summary information about the various resources.
 // This is expected to evolve over time.
 type Summary struct {
-	Sources       []SourceSummary `json:"sources"`
-	BothResources int             `json:"both_resource_count"`
+	Sources       []SourceSummary
+	BothResources int
 }
 
 // Summarize summarize the information from the reconciliation.
