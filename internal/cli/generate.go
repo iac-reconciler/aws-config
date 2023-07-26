@@ -81,13 +81,13 @@ func generate() *cobra.Command {
 			fmt.Printf("Both: %d\n", summary.BothResources)
 			fmt.Print("Terraform:\n")
 			fmt.Printf("\tAll Resources: %d\n", summary.TerraformResources)
-			fmt.Print("\tUnmapped:\n")
+			fmt.Print("\tUnmapped (no matching type in AWS Config):\n")
 			for _, unmapped := range summary.TerraformUnmapped {
 				fmt.Printf("\t\t%s: %d\n", unmapped.ResourceType, unmapped.Count)
 			}
 			fmt.Print("Config:\n")
 			fmt.Printf("\tAll Resources: %d\n", summary.ConfigResources)
-			fmt.Print("\tUnmapped:\n")
+			fmt.Print("\tUnmapped (no matching types in Terraform):\n")
 			for _, unmapped := range summary.ConfigUnmapped {
 				fmt.Printf("\t\t%s: %d\n", unmapped.ResourceType, unmapped.Count)
 			}
