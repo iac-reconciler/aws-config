@@ -7,20 +7,20 @@ type ResourceTypeCount struct {
 	Count        int    `json:"count"`
 }
 
+type SourceSummary struct {
+	Name          string              `json:"source"`
+	Total         int                 `json:"count"`
+	Unmapped      []ResourceTypeCount `json:"unmapped"`
+	UnmappedCount int                 `json:"unmapped_count"`
+	Only          []ResourceTypeCount `json:"only"`
+	OnlyCount     int                 `json:"only_count"`
+}
+
 // Summary struct holding summary information about the various resources.
 // This is expected to evolve over time.
 type Summary struct {
-	TerraformResources         int `json:"terraform_resource_count"`
-	TerraformUnmapped          []ResourceTypeCount
-	TerraformUnmappedResources int
-	TerraformOnly              []ResourceTypeCount
-	TerraformOnlyResources     int
-	ConfigResources            int `json:"config_resource_count"`
-	ConfigUnmapped             []ResourceTypeCount
-	ConfigUnmappedResources    int
-	ConfigOnly                 []ResourceTypeCount
-	ConfigOnlyResources        int
-	BothResources              int `json:"both_resource_count"`
+	Sources       []SourceSummary `json:"sources"`
+	BothResources int             `json:"both_resource_count"`
 }
 
 // Summarize summarize the information from the reconciliation.
@@ -33,15 +33,17 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		only              map[string]int
 		terraformOnly     = make(map[string]int)
 		configOnly        = make(map[string]int)
+		terraform         = SourceSummary{Name: "terraform"}
+		config            = SourceSummary{Name: "config"}
 	)
 	for _, item := range items {
 		if item.terraform {
-			results.TerraformResources++
+			terraform.Total++
 			unmapped = terraformUnmapped
 			only = terraformOnly
 		}
 		if item.config {
-			results.ConfigResources++
+			config.Total++
 			unmapped = configUnmapped
 			only = configOnly
 		}
@@ -62,48 +64,52 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	}
 	// get summary by resource type for unmapped in terraform and unmapped in config
 	for k, v := range terraformUnmapped {
-		results.TerraformUnmapped = append(results.TerraformUnmapped, ResourceTypeCount{
+		terraform.Unmapped = append(terraform.Unmapped, ResourceTypeCount{
 			ResourceType: k,
 			Count:        v,
 		})
-		results.TerraformUnmappedResources += v
+		terraform.UnmappedCount += v
 	}
 	for k, v := range configUnmapped {
-		results.ConfigUnmapped = append(results.ConfigUnmapped, ResourceTypeCount{
+		config.Unmapped = append(config.Unmapped, ResourceTypeCount{
 			ResourceType: k,
 			Count:        v,
 		})
-		results.ConfigUnmappedResources += v
+		config.UnmappedCount += v
 	}
 	// and now to sort each one
-	sort.Slice(results.TerraformUnmapped, func(i, j int) bool {
-		return results.TerraformUnmapped[i].ResourceType < results.TerraformUnmapped[j].ResourceType
+	sort.Slice(terraform.Unmapped, func(i, j int) bool {
+		return terraform.Unmapped[i].ResourceType < terraform.Unmapped[j].ResourceType
 	})
-	sort.Slice(results.ConfigUnmapped, func(i, j int) bool {
-		return results.ConfigUnmapped[i].ResourceType < results.ConfigUnmapped[j].ResourceType
+	sort.Slice(config.Unmapped, func(i, j int) bool {
+		return config.Unmapped[i].ResourceType < config.Unmapped[j].ResourceType
 	})
 
 	// get summary by resource type for only in terraform and only in config
 	for k, v := range terraformOnly {
-		results.TerraformOnly = append(results.TerraformOnly, ResourceTypeCount{
+		terraform.Only = append(terraform.Only, ResourceTypeCount{
 			ResourceType: k,
 			Count:        v,
 		})
-		results.TerraformOnlyResources += v
+		terraform.OnlyCount += v
 	}
 	for k, v := range configOnly {
-		results.ConfigOnly = append(results.ConfigOnly, ResourceTypeCount{
+		config.Only = append(config.Only, ResourceTypeCount{
 			ResourceType: k,
 			Count:        v,
 		})
-		results.ConfigOnlyResources += v
+		config.OnlyCount += v
 	}
 	// and now to sort each one
-	sort.Slice(results.TerraformOnly, func(i, j int) bool {
-		return results.TerraformOnly[i].ResourceType < results.TerraformOnly[j].ResourceType
+	sort.Slice(terraform.Only, func(i, j int) bool {
+		return terraform.Only[i].ResourceType < terraform.Only[j].ResourceType
 	})
-	sort.Slice(results.ConfigOnly, func(i, j int) bool {
-		return results.ConfigOnly[i].ResourceType < results.ConfigOnly[j].ResourceType
+	sort.Slice(config.Only, func(i, j int) bool {
+		return config.Only[i].ResourceType < config.Only[j].ResourceType
 	})
+
+	// and join them
+	results.Sources = append(results.Sources, terraform)
+	results.Sources = append(results.Sources, config)
 	return results, nil
 }

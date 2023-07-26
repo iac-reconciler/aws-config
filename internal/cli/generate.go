@@ -79,25 +79,17 @@ func generate() *cobra.Command {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
 			fmt.Printf("Both: %d\n", summary.BothResources)
-			fmt.Print("Terraform:\n")
-			fmt.Printf("\tAll Resources: %d\n", summary.TerraformResources)
-			fmt.Printf("\tOnly in Terraform: %d\n", summary.TerraformOnlyResources)
-			for _, only := range summary.TerraformOnly {
-				fmt.Printf("\t\t%s: %d\n", only.ResourceType, only.Count)
-			}
-			fmt.Printf("\tUnmapped (no matching type in AWS Config): %d\n", summary.TerraformUnmappedResources)
-			for _, unmapped := range summary.TerraformUnmapped {
-				fmt.Printf("\t\t%s: %d\n", unmapped.ResourceType, unmapped.Count)
-			}
-			fmt.Print("Config:\n")
-			fmt.Printf("\tAll Resources: %d\n", summary.ConfigResources)
-			fmt.Printf("\tOnly in Config: %d\n", summary.ConfigOnlyResources)
-			for _, only := range summary.ConfigOnly {
-				fmt.Printf("\t\t%s: %d\n", only.ResourceType, only.Count)
-			}
-			fmt.Printf("\tUnmapped (no matching types in Terraform): %d\n", summary.ConfigUnmappedResources)
-			for _, unmapped := range summary.ConfigUnmapped {
-				fmt.Printf("\t\t%s: %d\n", unmapped.ResourceType, unmapped.Count)
+			for _, source := range summary.Sources {
+				fmt.Printf("%s:\n", source.Name)
+				fmt.Printf("\tAll Resources: %d\n", source.Total)
+				fmt.Printf("\tOnly in %s: %d\n", source.Name, source.OnlyCount)
+				for _, only := range source.Only {
+					fmt.Printf("\t\t%s: %d\n", only.ResourceType, only.Count)
+				}
+				fmt.Printf("\tUnmapped (no matching type in alternate): %d\n", source.UnmappedCount)
+				for _, unmapped := range source.Unmapped {
+					fmt.Printf("\t\t%s: %d\n", unmapped.ResourceType, unmapped.Count)
+				}
 			}
 			fmt.Printf("Terraform Files: %d\n", len(tfstates))
 
