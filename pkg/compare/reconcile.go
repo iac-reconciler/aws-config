@@ -30,7 +30,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			continue
 		}
 		var mappedType = true
-		if _, ok := awsConfigToTerraformypeMap[item.ResourceType]; !ok {
+		if _, ok := awsConfigToTerraformTypeMap[item.ResourceType]; !ok {
 			log.Warnf("unknown AWS Config resource type: %s", item.ResourceType)
 			mappedType = false
 		}
