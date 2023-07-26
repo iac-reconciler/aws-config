@@ -63,53 +63,35 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 	}
 	// get summary by resource type for unmapped in terraform and unmapped in config
-	for k, v := range terraformUnmapped {
-		terraform.Unmapped = append(terraform.Unmapped, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		terraform.UnmappedCount += v
-	}
-	for k, v := range configUnmapped {
-		config.Unmapped = append(config.Unmapped, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		config.UnmappedCount += v
-	}
-	// and now to sort each one
-	sort.Slice(terraform.Unmapped, func(i, j int) bool {
-		return terraform.Unmapped[i].ResourceType < terraform.Unmapped[j].ResourceType
-	})
-	sort.Slice(config.Unmapped, func(i, j int) bool {
-		return config.Unmapped[i].ResourceType < config.Unmapped[j].ResourceType
-	})
-
-	// get summary by resource type for only in terraform and only in config
-	for k, v := range terraformOnly {
-		terraform.Only = append(terraform.Only, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		terraform.OnlyCount += v
-	}
-	for k, v := range configOnly {
-		config.Only = append(config.Only, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		config.OnlyCount += v
-	}
-	// and now to sort each one
-	sort.Slice(terraform.Only, func(i, j int) bool {
-		return terraform.Only[i].ResourceType < terraform.Only[j].ResourceType
-	})
-	sort.Slice(config.Only, func(i, j int) bool {
-		return config.Only[i].ResourceType < config.Only[j].ResourceType
-	})
-
-	// and join them
+	processSummaries(&terraform, terraformUnmapped, terraformOnly)
 	results.Sources = append(results.Sources, terraform)
+
+	processSummaries(&config, configUnmapped, configOnly)
 	results.Sources = append(results.Sources, config)
+
 	return results, nil
+}
+
+func processSummaries(sourceSummary *SourceSummary, unmapped map[string]int, only map[string]int) {
+	for k, v := range unmapped {
+		sourceSummary.Unmapped = append(sourceSummary.Unmapped, ResourceTypeCount{
+			ResourceType: k,
+			Count:        v,
+		})
+		sourceSummary.UnmappedCount += v
+	}
+	sort.Slice(sourceSummary.Unmapped, func(i, j int) bool {
+		return sourceSummary.Unmapped[i].ResourceType < sourceSummary.Unmapped[j].ResourceType
+	})
+	for k, v := range only {
+		sourceSummary.Only = append(sourceSummary.Only, ResourceTypeCount{
+			ResourceType: k,
+			Count:        v,
+		})
+		sourceSummary.OnlyCount += v
+	}
+	sort.Slice(sourceSummary.Only, func(i, j int) bool {
+		return sourceSummary.Only[i].ResourceType < sourceSummary.Only[j].ResourceType
+	})
+
 }
