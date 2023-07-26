@@ -10,11 +10,13 @@ type ResourceTypeCount struct {
 // Summary struct holding summary information about the various resources.
 // This is expected to evolve over time.
 type Summary struct {
-	TerraformResources int `json:"terraform_resource_count"`
-	TerraformUnmapped  []ResourceTypeCount
-	ConfigResources    int `json:"config_resource_count"`
-	ConfigUnmapped     []ResourceTypeCount
-	BothResources      int `json:"both_resource_count"`
+	TerraformResources         int `json:"terraform_resource_count"`
+	TerraformUnmapped          []ResourceTypeCount
+	TerraformUnmappedResources int
+	ConfigResources            int `json:"config_resource_count"`
+	ConfigUnmapped             []ResourceTypeCount
+	ConfigUnmappedResources    int
+	BothResources              int `json:"both_resource_count"`
 }
 
 // Summarize summarize the information from the reconciliation.
@@ -50,12 +52,14 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ResourceType: k,
 			Count:        v,
 		})
+		results.TerraformUnmappedResources += v
 	}
 	for k, v := range configUnmapped {
 		results.ConfigUnmapped = append(results.ConfigUnmapped, ResourceTypeCount{
 			ResourceType: k,
 			Count:        v,
 		})
+		results.ConfigUnmappedResources += v
 	}
 	// and now to sort each one
 	sort.Slice(results.TerraformUnmapped, func(i, j int) bool {
