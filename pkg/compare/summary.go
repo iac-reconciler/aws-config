@@ -2,20 +2,21 @@ package compare
 
 import "sort"
 
+// ResourceTypeCount used to keep track of resources that are only in one
+// source or the other. Tracks separate counts for mapped and unmapped.
 type ResourceTypeCount struct {
 	ResourceType string
-	Count        int
+	Unmapped     int
+	Mapped       int
 }
 
 type SourceSummary struct {
-	Name            string
-	Total           int
-	Unmapped        []ResourceTypeCount
-	UnmappedCount   int
-	Only            []ResourceTypeCount
-	OnlyCount       int
-	OnlyMapped      []ResourceTypeCount
-	OnlyMappedCount int
+	Name              string
+	Total             int
+	Only              []ResourceTypeCount
+	OnlyCount         int
+	OnlyMappedCount   int
+	OnlyUnmappedCount int
 }
 
 // Summary struct holding summary information about the various resources.
@@ -29,71 +30,55 @@ type Summary struct {
 func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	results = &Summary{}
 	var (
-		unmapped          map[string]int
-		terraformUnmapped = make(map[string]int)
-		configUnmapped    = make(map[string]int)
-		only              map[string]int
-		terraformOnly     = make(map[string]int)
-		configOnly        = make(map[string]int)
-		terraform         = SourceSummary{Name: "terraform"}
-		config            = SourceSummary{Name: "config"}
+		terraform     = SourceSummary{Name: "terraform"}
+		config        = SourceSummary{Name: "config"}
+		only          map[string]*ResourceTypeCount
+		rtc           *ResourceTypeCount
+		configOnly    = make(map[string]*ResourceTypeCount)
+		terraformOnly = make(map[string]*ResourceTypeCount)
 	)
 	for _, item := range items {
 		if item.terraform {
 			terraform.Total++
-			unmapped = terraformUnmapped
 			only = terraformOnly
 		}
 		if item.config {
 			config.Total++
-			unmapped = configUnmapped
 			only = configOnly
 		}
-		if item.config && item.terraform {
-			results.BothResources++
-		} else {
-			if _, ok := only[item.ResourceType]; !ok {
-				only[item.ResourceType] = 0
+		if _, ok := only[item.ResourceType]; !ok {
+			only[item.ResourceType] = &ResourceTypeCount{
+				ResourceType: item.ResourceType,
 			}
-			only[item.ResourceType]++
 		}
-		if !item.mappedType {
-			if _, ok := unmapped[item.ResourceType]; !ok {
-				unmapped[item.ResourceType] = 0
-			}
-			unmapped[item.ResourceType]++
+		rtc = only[item.ResourceType]
+		switch {
+		case item.config && item.terraform:
+			results.BothResources++
+		case item.mappedType:
+			rtc.Mapped++
+		default:
+			rtc.Unmapped++
 		}
 	}
 	// get summary by resource type for unmapped in terraform and unmapped in config
-	processSummaries(&terraform, terraformUnmapped, terraformOnly)
+	processSummaries(&terraform, terraformOnly)
 	results.Sources = append(results.Sources, terraform)
 
-	processSummaries(&config, configUnmapped, configOnly)
+	processSummaries(&config, configOnly)
 	results.Sources = append(results.Sources, config)
 
 	return results, nil
 }
 
-func processSummaries(sourceSummary *SourceSummary, unmapped map[string]int, only map[string]int) {
-	for k, v := range unmapped {
-		sourceSummary.Unmapped = append(sourceSummary.Unmapped, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		sourceSummary.UnmappedCount += v
-	}
-	sort.Slice(sourceSummary.Unmapped, func(i, j int) bool {
-		return sourceSummary.Unmapped[i].ResourceType < sourceSummary.Unmapped[j].ResourceType
-	})
-	for k, v := range only {
-		sourceSummary.Only = append(sourceSummary.Only, ResourceTypeCount{
-			ResourceType: k,
-			Count:        v,
-		})
-		sourceSummary.OnlyCount += v
+func processSummaries(sourceSummary *SourceSummary, only map[string]*ResourceTypeCount) {
+	for _, v := range only {
+		sourceSummary.Only = append(sourceSummary.Only, *v)
+		sourceSummary.OnlyUnmappedCount += v.Unmapped
+		sourceSummary.OnlyMappedCount += v.Mapped
+		sourceSummary.OnlyCount += v.Unmapped + v.Mapped
 	}
 	sort.Slice(sourceSummary.Only, func(i, j int) bool {
 		return sourceSummary.Only[i].ResourceType < sourceSummary.Only[j].ResourceType
 	})
-
 }
