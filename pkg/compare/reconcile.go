@@ -13,7 +13,6 @@ type LocatedItem struct {
 }
 
 // Reconcile reconcile the snapshot and tfstates.
-// Not yet implemented, so returns an empty struct
 func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
 	// the keys are resource types, using the AWS-Config keys;
 	// the values are map[string]*LocatedItem

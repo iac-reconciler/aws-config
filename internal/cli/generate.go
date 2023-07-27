@@ -78,6 +78,11 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
+			fmt.Printf("ResourceType Total Config Terraform Both\n")
+			for _, item := range summary.ByType {
+				fmt.Printf("%s: %d %d %d %d\n", item.ResourceType, item.Count, item.Source["config"], item.Source["terraform"], item.Source["both"])
+			}
+
 			fmt.Printf("Both: %d\n", summary.BothResources)
 
 			for _, source := range summary.Sources {
@@ -86,10 +91,6 @@ func generate() *cobra.Command {
 				fmt.Printf("\tOnly in %s: %d\n", source.Name, source.OnlyCount)
 				fmt.Printf("\t\tMapped (matching type in alternate): %d\n", source.OnlyMappedCount)
 				fmt.Printf("\t\tUnmapped (no matching type in alternate): %d\n", source.OnlyUnmappedCount)
-				fmt.Print("\tDetails (type, mapped, unmapped):\n")
-				for _, only := range source.Only {
-					fmt.Printf("\t\t%s: %d %d\n", only.ResourceType, only.Mapped, only.Unmapped)
-				}
 			}
 			fmt.Printf("Terraform Files: %d\n", len(tfstates))
 

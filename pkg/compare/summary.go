@@ -19,9 +19,18 @@ type SourceSummary struct {
 	OnlyUnmappedCount int
 }
 
+type TypeSummary struct {
+	ResourceType string
+	Count        int
+	Source       map[string]int
+}
+
 // Summary struct holding summary information about the various resources.
 // This is expected to evolve over time.
 type Summary struct {
+	// ByType map by each type, with the values showing how many there
+	// are in each source, total, and both
+	ByType        []TypeSummary
 	Sources       []SourceSummary
 	BothResources int
 }
@@ -36,14 +45,31 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
 		terraformOnly = make(map[string]*ResourceTypeCount)
+		byType        = make(map[string]*TypeSummary)
 	)
 	for _, item := range items {
+		if _, ok := byType[item.ResourceType]; !ok {
+			byType[item.ResourceType] = &TypeSummary{
+				ResourceType: item.ResourceType,
+				Source:       make(map[string]int),
+			}
+		}
+		ts := byType[item.ResourceType]
+		ts.Count++
 		if item.terraform {
 			terraform.Total++
+			if _, ok := ts.Source["terraform"]; !ok {
+				ts.Source["terraform"] = 0
+			}
+			ts.Source["terraform"]++
 			only = terraformOnly
 		}
 		if item.config {
 			config.Total++
+			if _, ok := ts.Source["config"]; !ok {
+				ts.Source["config"] = 0
+			}
+			ts.Source["config"]++
 			only = configOnly
 		}
 		if _, ok := only[item.ResourceType]; !ok {
@@ -54,6 +80,10 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		rtc = only[item.ResourceType]
 		switch {
 		case item.config && item.terraform:
+			if _, ok := ts.Source["both"]; !ok {
+				ts.Source["both"] = 0
+			}
+			ts.Source["both"]++
 			results.BothResources++
 		case item.mappedType:
 			rtc.Mapped++
@@ -61,6 +91,12 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			rtc.Unmapped++
 		}
 	}
+	for _, v := range byType {
+		results.ByType = append(results.ByType, *v)
+	}
+	sort.Slice(results.ByType, func(i, j int) bool {
+		return results.ByType[i].ResourceType < results.ByType[j].ResourceType
+	})
 	// get summary by resource type for unmapped in terraform and unmapped in config
 	processSummaries(&terraform, terraformOnly)
 	results.Sources = append(results.Sources, terraform)
