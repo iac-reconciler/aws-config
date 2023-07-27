@@ -83,7 +83,9 @@ func generate() *cobra.Command {
 				fmt.Printf("%s: %d %d %d %d %d\n", item.ResourceType, item.Count, item.Source["config"], item.Source["terraform"], item.Source["cloudformation"], item.Source["both"])
 			}
 
-			fmt.Printf("Both: %d\n", summary.BothResources)
+			fmt.Println()
+			fmt.Printf("Summary:\n")
+			fmt.Printf("Both (Config+IaC): %d\n", summary.BothResources)
 
 			for _, source := range summary.Sources {
 				fmt.Printf("%s:\n", source.Name)
