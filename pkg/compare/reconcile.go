@@ -1,6 +1,8 @@
 package compare
 
 import (
+	"strings"
+
 	"github.com/iac-reconciler/tf-aws-config/pkg/load"
 	log "github.com/sirupsen/logrus"
 )
@@ -9,6 +11,7 @@ type LocatedItem struct {
 	load.ConfigurationItem
 	terraform  bool
 	config     bool
+	cfn        bool
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -28,6 +31,35 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			log.Warnf("AWS Config snapshot: empty resource type for item %s", item.ARN)
 			continue
 		}
+		// if this is a CloudFormation stack, track all of its resources
+		if item.ResourceType == stackResourceType {
+			for _, resource := range item.Relationships {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+					continue
+				}
+				// only care about those contained
+				if strings.TrimSpace(resource.Name) != stackContains {
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				if detail, ok = itemToLocation[resource.ResourceType][resource.ResourceID]; !ok {
+					detail = &LocatedItem{
+						ConfigurationItem: item,
+						config:            true,
+						cfn:               true,
+					}
+					itemToLocation[resource.ResourceType][resource.ResourceID] = detail
+				}
+				detail.cfn = true
+			}
+		}
 		var mappedType = true
 		if _, ok := awsConfigToTerraformTypeMap[item.ResourceType]; !ok {
 			mappedType = false
@@ -35,15 +67,22 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		if _, ok := itemToLocation[item.ResourceType]; !ok {
 			itemToLocation[item.ResourceType] = make(map[string]*LocatedItem)
 		}
-		key := item.ARN
+		key := item.ResourceID
 		if key == "" {
-			key = item.ResourceID
+			key = item.ARN
 		}
-		itemToLocation[item.ResourceType][key] = &LocatedItem{
-			ConfigurationItem: item,
-			config:            true,
-			mappedType:        mappedType,
+		var (
+			detail *LocatedItem
+			ok     bool
+		)
+		if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
+			detail = &LocatedItem{
+				ConfigurationItem: item,
+				mappedType:        mappedType,
+			}
+			itemToLocation[item.ResourceType][key] = detail
 		}
+		detail.config = true
 	}
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
 	// This would be easy if there were standards, but everything is driven by the provider,

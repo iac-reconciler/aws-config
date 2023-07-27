@@ -41,10 +41,12 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	var (
 		terraform     = SourceSummary{Name: "terraform"}
 		config        = SourceSummary{Name: "config"}
+		cfn           = SourceSummary{Name: "cloudformation"}
 		only          map[string]*ResourceTypeCount
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
 		terraformOnly = make(map[string]*ResourceTypeCount)
+		cfnOnly       = make(map[string]*ResourceTypeCount)
 		byType        = make(map[string]*TypeSummary)
 	)
 	for _, item := range items {
@@ -72,6 +74,14 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ts.Source["config"]++
 			only = configOnly
 		}
+		if item.cfn {
+			cfn.Total++
+			if _, ok := ts.Source["cloudformation"]; !ok {
+				ts.Source["cloudformation"] = 0
+			}
+			ts.Source["cloudformation"]++
+			only = cfnOnly
+		}
 		if _, ok := only[item.ResourceType]; !ok {
 			only[item.ResourceType] = &ResourceTypeCount{
 				ResourceType: item.ResourceType,
@@ -79,7 +89,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 		rtc = only[item.ResourceType]
 		switch {
-		case item.config && item.terraform:
+		case item.config && (item.terraform || item.cfn):
 			if _, ok := ts.Source["both"]; !ok {
 				ts.Source["both"] = 0
 			}
@@ -103,6 +113,9 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 
 	processSummaries(&config, configOnly)
 	results.Sources = append(results.Sources, config)
+
+	processSummaries(&cfn, cfnOnly)
+	results.Sources = append(results.Sources, cfn)
 
 	return results, nil
 }
