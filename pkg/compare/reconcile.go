@@ -101,10 +101,14 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				detail *LocatedItem
 				ok     bool
 			)
-			if detail, ok = itemToLocation[resource.ResourceType][resource.ResourceID]; !ok {
+			key := resource.ResourceID
+			if key == "" {
+				key = resource.ResourceName
+			}
+			if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
 				// try by name
-				if detail, ok = nameToLocation[resource.ResourceType][resource.ResourceID]; !ok {
-					log.Warnf("found unknown resource: %s %s", resource.ResourceType, resource.ResourceID)
+				if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
+					log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
 					continue
 				}
 			}

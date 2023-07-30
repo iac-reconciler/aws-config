@@ -13,6 +13,7 @@ type Snapshot struct {
 type Relationship struct {
 	ResourceType string `json:"resourceType"`
 	ResourceID   string `json:"resourceId"`
+	ResourceName string `json:"resourceName"`
 	Name         string `json:"name"`
 }
 
