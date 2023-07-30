@@ -62,12 +62,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				mappedType:        mappedType,
 			}
 			itemToLocation[item.ResourceType][key] = detail
-			// we also map by name, if it exists, knowing it is a duplicate;
-			// this is needed because the cloudformation and elasticbeanstalk stacks
-			// sometimes reference a name, even though they call it an ID
-			if item.ResourceName != "" {
-				itemToLocation[item.ResourceType][item.ResourceName] = detail
-			}
 		}
 		// we also map by name, if it exists, knowing it is a duplicate;
 		// this is needed because the cloudformation and elasticbeanstalk stacks
@@ -76,6 +70,29 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			nameToLocation[item.ResourceType][item.ResourceName] = detail
 		}
 		detail.config = true
+
+		// handle special resources that have children, e.g. routetable associations
+		if item.ResourceType == resourceTypeRouteTable {
+			// we will just create resources for these associations, as that is how AWSConfig
+			// (sort of) sees it
+			subType := resourceTypeRouteTableAssociation
+			if _, ok := itemToLocation[subType]; !ok {
+				itemToLocation[subType] = make(map[string]*LocatedItem)
+			}
+			if _, ok := nameToLocation[subType]; !ok {
+				nameToLocation[subType] = make(map[string]*LocatedItem)
+			}
+			for _, assoc := range item.Configuration.Associations {
+				itemToLocation[subType][assoc.AssociationID] = &LocatedItem{
+					ConfigurationItem: &load.ConfigurationItem{
+						ResourceType: subType,
+						ResourceID:   assoc.AssociationID,
+					},
+					mappedType: true,
+					config:     true,
+				}
+			}
+		}
 	}
 
 	// second pass just for resources that contain others
@@ -119,33 +136,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				detail.beanstack = true
 			}
 		}
-
-		var mappedType = true
-		if _, ok := awsConfigToTerraformTypeMap[item.ResourceType]; !ok {
-			mappedType = false
-		}
-		if _, ok := itemToLocation[item.ResourceType]; !ok {
-			itemToLocation[item.ResourceType] = make(map[string]*LocatedItem)
-		}
-		key := item.ResourceID
-		if key == "" {
-			key = item.ARN
-		}
-		var (
-			detail *LocatedItem
-			ok     bool
-		)
-		if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
-			detail = &LocatedItem{
-				ConfigurationItem: &item,
-				mappedType:        mappedType,
-			}
-			itemToLocation[item.ResourceType][key] = detail
-		}
-		if detail.ConfigurationItem == nil {
-			detail.ConfigurationItem = &item
-		}
-		detail.config = true
 	}
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
 	// This would be easy if there were standards, but everything is driven by the provider,

@@ -27,4 +27,15 @@ type ConfigurationItem struct {
 	AccountID     string         `json:"awsAccountId"`            // should be limited to numeric
 	Status        string         `json:"configurationItemStatus"` // should be limited to the limited sets of status
 	Relationships []Relationship `json:"relationships"`
+	Configuration Configuration  `json:"configuration"`
+}
+
+type Configuration struct {
+	Associations []Association `json:"associations"`
+}
+
+type Association struct {
+	AssociationID string `json:"routeTableAssociationId"`
+	RouteTableID  string `json:"routeTableId"`
+	SubnetID      string `json:"subnetId"`
 }
