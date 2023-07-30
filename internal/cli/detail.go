@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -11,9 +12,9 @@ import (
 
 func detail() *cobra.Command {
 	var (
-		descending     bool
-		sortBy, detail string
-		top            int
+		descending bool
+		sortBy     string
+		top        int
 	)
 
 	const (
@@ -35,7 +36,9 @@ func detail() *cobra.Command {
 		Short:   "show detail for a specific resource in the sources",
 		Long:    `Show detail for a specific resource in the sources.`,
 		Example: `  aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate> AWS::EC2::Volume`,
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			detail := os.Args[0]
 			var results []*compare.LocatedItem
 			for _, item := range items {
 				if item.ResourceType != detail {
