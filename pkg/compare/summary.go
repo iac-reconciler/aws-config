@@ -137,11 +137,11 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		} else {
 			ts.SingleOnly++
 			results.SingleResources++
-		}
-		if item.mappedType {
-
-		} else {
-			rtc.Unmapped++
+			if item.mappedType {
+				rtc.Mapped++
+			} else {
+				rtc.Unmapped++
+			}
 		}
 	}
 	for _, v := range byType {
