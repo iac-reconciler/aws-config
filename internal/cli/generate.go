@@ -25,23 +25,17 @@ func generate() *cobra.Command {
 	)
 
 	const (
-		sortByResourceName        = "resource-name"
-		sortByCountTotal          = "count-total"
-		sortByCountConfig         = "count-config"
-		sortByCountTerraform      = "count-terraform"
-		sortByCountCloudFormation = "count-cloudformation"
-		sortByCountBeanstalk      = "count-beanstalk"
-		sortByCountBoth           = "count-both"
-		sortByCountSingleOnly     = "count-single"
-		sortByDefault             = sortByResourceName
+		sortByResourceName    = "resource-name"
+		sortByCountTotal      = "count-total"
+		sortByCountBoth       = "count-both"
+		sortByCountSingleOnly = "count-single"
+		sortByDefault         = sortByResourceName
 	)
 	var sortOptions = []string{
 		sortByResourceName,
 		sortByCountTotal,
-		sortByCountConfig,
-		sortByCountTerraform,
-		sortByCountCloudFormation,
-		sortByCountBeanstalk,
+		sortByCountBoth,
+		sortByCountSingleOnly,
 	}
 
 	cmd := &cobra.Command{
@@ -111,22 +105,19 @@ func generate() *cobra.Command {
 					switch sortBy {
 					case sortByCountTotal:
 						retVal = summary.ByType[i].Count < summary.ByType[j].Count
-					case sortByCountConfig:
-						retVal = summary.ByType[i].Source["config"] < summary.ByType[j].Source["config"]
-					case sortByCountTerraform:
-						retVal = summary.ByType[i].Source["terraform"] < summary.ByType[j].Source["terraform"]
-					case sortByCountCloudFormation:
-						retVal = summary.ByType[i].Source["cloudformation"] < summary.ByType[j].Source["cloudformation"]
-					case sortByCountBeanstalk:
-						retVal = summary.ByType[i].Source["beanstalk"] < summary.ByType[j].Source["beanstalk"]
 					case sortByCountBoth:
-						retVal = summary.ByType[i].Source["both"] < summary.ByType[j].Source["both"]
+						retVal = summary.ByType[i].Both < summary.ByType[j].Both
 					case sortByCountSingleOnly:
-						retVal = summary.ByType[i].Source["single-only"] < summary.ByType[j].Source["single-only"]
+						retVal = summary.ByType[i].SingleOnly < summary.ByType[j].SingleOnly
 					case sortByResourceName:
 						retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
 					default:
-						retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
+						if strings.HasPrefix(sortBy, "count-") {
+							key := strings.TrimPrefix(sortBy, "count-")
+							retVal = summary.ByType[i].Source[key] < summary.ByType[j].Source[key]
+						} else {
+							retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
+						}
 					}
 					if descending {
 						retVal = !retVal
@@ -183,7 +174,7 @@ func generate() *cobra.Command {
 	cmd.Flags().BoolVar(&byResourceType, "by-type", false, "list the count of locations of each resource type")
 	cmd.Flags().BoolVar(&summarize, "summary", false, "provide summary results")
 	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type only")
-	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+"; for by-type only")
+	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+", as well as 'count-<field>', where <field> is any supported field, e.g. terraform or eks; for by-type only")
 	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type only")
 	return cmd
 }
