@@ -17,6 +17,26 @@ type LocatedItem struct {
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
+func (l LocatedItem) Terraform() bool {
+	return l.terraform
+}
+
+func (l LocatedItem) Config() bool {
+	return l.config
+}
+
+func (l LocatedItem) CloudFormation() bool {
+	return l.cfn
+}
+
+func (l LocatedItem) Beanstalk() bool {
+	return l.beanstalk
+}
+
+func (l LocatedItem) EKS() bool {
+	return l.eks
+}
+
 // Reconcile reconcile the snapshot and tfstates.
 func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
 	// the keys are resource types, using the AWS-Config keys;

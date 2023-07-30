@@ -20,7 +20,7 @@ func generate() *cobra.Command {
 		tfRecursive               bool
 		summarize, byResourceType bool
 		descending                bool
-		sortBy                    string
+		sortBy, detail            string
 		top                       int
 	)
 
@@ -98,6 +98,29 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
+
+			if detail != "" {
+				// print the detail
+				fmt.Printf("ResourceType ResourceName ResourceID ARN beanstalk %s\n", strings.Join(compare.SourceKeys, " "))
+				for _, item := range items {
+					if item.ResourceType != detail {
+						continue
+					}
+					fmt.Printf("%s %s %s %s %v %v %v %v %v\n",
+						item.ResourceType,
+						item.ResourceName,
+						item.ResourceID,
+						item.ARN,
+						item.Beanstalk(),
+						item.CloudFormation(),
+						item.Config(),
+						item.EKS(),
+						item.Terraform(),
+					)
+				}
+				return nil
+			}
+
 			if byResourceType {
 				// sort the summary
 				sort.Slice(summary.ByType, func(i, j int) bool {
@@ -176,5 +199,6 @@ func generate() *cobra.Command {
 	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type only")
 	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+", as well as 'count-<field>', where <field> is any supported field, e.g. terraform or eks; for by-type only")
 	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type only")
+	cmd.Flags().StringVar(&detail, "detail", "", "report resource detail for a single resource type")
 	return cmd
 }
