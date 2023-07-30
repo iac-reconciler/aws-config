@@ -155,7 +155,7 @@ func generate() *cobra.Command {
 						item.Source["beanstalk"],
 						item.Source["eks"],
 						item.Source["both"],
-						item.Source["config-only"],
+						item.Source["single-only"],
 					)
 				}
 			}
