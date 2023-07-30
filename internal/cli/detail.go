@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -38,7 +37,7 @@ func detail() *cobra.Command {
 		Example: `  aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate> AWS::EC2::Volume`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			detail := os.Args[0]
+			detail := args[0]
 			var results []*compare.LocatedItem
 			for _, item := range items {
 				if item.ResourceType != detail {
