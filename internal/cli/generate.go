@@ -105,7 +105,6 @@ func generate() *cobra.Command {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
 			if byResourceType {
-				fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC) (Config-Only)\n")
 				// sort the summary
 				sort.Slice(summary.ByType, func(i, j int) bool {
 					var retVal bool
@@ -145,18 +144,19 @@ func generate() *cobra.Command {
 					results = summary.ByType
 				}
 
+				fmt.Printf("ResourceType Total (Config-Only) (Config+IaC) ")
+				fmt.Println(strings.Join(compare.SourceKeys, " "))
 				for _, item := range results {
-					fmt.Printf("%s: %d %d %d %d %d %d %d %d\n",
+					fmt.Printf("%s: %d %d %d ",
 						item.ResourceType,
 						item.Count,
-						item.Source["config"],
-						item.Source["terraform"],
-						item.Source["cloudformation"],
-						item.Source["beanstalk"],
-						item.Source["eks"],
-						item.Source["both"],
-						item.Source["single-only"],
+						item.SingleOnly,
+						item.Both,
 					)
+					for _, source := range compare.SourceKeys {
+						fmt.Printf("%d ", item.Source[source])
+					}
+					fmt.Println()
 				}
 			}
 

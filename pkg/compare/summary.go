@@ -2,6 +2,22 @@ package compare
 
 import "sort"
 
+const (
+	sourceBeanstalk      = "beanstalk"
+	sourceEKS            = "eks"
+	sourceTerraform      = "terraform"
+	sourceConfig         = "config"
+	sourceCloudFormation = "cloudformation"
+)
+
+var (
+	SourceKeys = []string{sourceBeanstalk, sourceEKS, sourceTerraform, sourceConfig, sourceCloudFormation}
+)
+
+func init() {
+	sort.Strings(SourceKeys)
+}
+
 // ResourceTypeCount used to keep track of resources that are only in one
 // source or the other. Tracks separate counts for mapped and unmapped.
 type ResourceTypeCount struct {
@@ -23,6 +39,8 @@ type TypeSummary struct {
 	ResourceType string
 	Count        int
 	Source       map[string]int
+	SingleOnly   int
+	Both         int
 }
 
 // Summary struct holding summary information about the various resources.
@@ -30,20 +48,21 @@ type TypeSummary struct {
 type Summary struct {
 	// ByType map by each type, with the values showing how many there
 	// are in each source, total, and both
-	ByType        []TypeSummary
-	Sources       []SourceSummary
-	BothResources int
+	ByType          []TypeSummary
+	Sources         []SourceSummary
+	BothResources   int
+	SingleResources int
 }
 
 // Summarize summarize the information from the reconciliation.
 func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	results = &Summary{}
 	var (
-		terraform     = SourceSummary{Name: "terraform"}
-		config        = SourceSummary{Name: "config"}
-		cfn           = SourceSummary{Name: "cloudformation"}
-		beanstalk     = SourceSummary{Name: "beanstalk"}
-		eks           = SourceSummary{Name: "eks"}
+		terraform     = SourceSummary{Name: sourceTerraform}
+		config        = SourceSummary{Name: sourceConfig}
+		cfn           = SourceSummary{Name: sourceCloudFormation}
+		beanstalk     = SourceSummary{Name: sourceBeanstalk}
+		eks           = SourceSummary{Name: sourceEKS}
 		only          map[string]*ResourceTypeCount
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
@@ -67,42 +86,42 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		ts.Count++
 		if item.terraform {
 			terraform.Total++
-			if _, ok := ts.Source["terraform"]; !ok {
-				ts.Source["terraform"] = 0
+			if _, ok := ts.Source[sourceTerraform]; !ok {
+				ts.Source[sourceTerraform] = 0
 			}
-			ts.Source["terraform"]++
+			ts.Source[sourceTerraform]++
 			only = terraformOnly
 		}
 		if item.config {
 			config.Total++
-			if _, ok := ts.Source["config"]; !ok {
-				ts.Source["config"] = 0
+			if _, ok := ts.Source[sourceConfig]; !ok {
+				ts.Source[sourceConfig] = 0
 			}
-			ts.Source["config"]++
+			ts.Source[sourceConfig]++
 			only = configOnly
 		}
 		if item.cfn {
 			cfn.Total++
-			if _, ok := ts.Source["cloudformation"]; !ok {
-				ts.Source["cloudformation"] = 0
+			if _, ok := ts.Source[sourceCloudFormation]; !ok {
+				ts.Source[sourceCloudFormation] = 0
 			}
-			ts.Source["cloudformation"]++
+			ts.Source[sourceCloudFormation]++
 			only = cfnOnly
 		}
 		if item.beanstalk {
 			beanstalk.Total++
-			if _, ok := ts.Source["beanstalk"]; !ok {
-				ts.Source["beanstalk"] = 0
+			if _, ok := ts.Source[sourceBeanstalk]; !ok {
+				ts.Source[sourceBeanstalk] = 0
 			}
-			ts.Source["beanstalk"]++
+			ts.Source[sourceBeanstalk]++
 			only = beanstalkOnly
 		}
 		if item.eks {
 			eks.Total++
-			if _, ok := ts.Source["eks"]; !ok {
-				ts.Source["eks"] = 0
+			if _, ok := ts.Source[sourceEKS]; !ok {
+				ts.Source[sourceEKS] = 0
 			}
-			ts.Source["eks"]++
+			ts.Source[sourceEKS]++
 			only = eksOnly
 		}
 
@@ -113,16 +132,11 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 		rtc = only[item.ResourceType]
 		if item.config && (item.terraform || item.cfn || item.beanstalk || item.eks) {
-			if _, ok := ts.Source["both"]; !ok {
-				ts.Source["both"] = 0
-			}
-			ts.Source["both"]++
+			ts.Both++
 			results.BothResources++
 		} else {
-			if _, ok := ts.Source["single-only"]; !ok {
-				ts.Source["single-only"] = 0
-			}
-			ts.Source["single-only"]++
+			ts.SingleOnly++
+			results.SingleResources++
 		}
 		if item.mappedType {
 
