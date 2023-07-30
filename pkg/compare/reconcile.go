@@ -8,10 +8,11 @@ import (
 )
 
 type LocatedItem struct {
-	load.ConfigurationItem
+	*load.ConfigurationItem
 	terraform  bool
 	config     bool
 	cfn        bool
+	beanstack  bool
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -21,8 +22,13 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	// the values are map[string]*LocatedItem
 	// in there, the keys are arn or id (if no arn), the values are
 	// the LocatedItem, which includes marking where it was seen.
-	var itemToLocation = make(map[string]map[string]*LocatedItem)
+	var (
+		itemToLocation = make(map[string]map[string]*LocatedItem)
+		nameToLocation = make(map[string]map[string]*LocatedItem)
+	)
 
+	// we will do this in 2 passes. The first pass is to get the raw resources as they are
+	// the second pass is to find those resources that contain other resources
 	for _, item := range snapshot.ConfigurationItems {
 		if item.ResourceType == configComplianceResourceType {
 			continue
@@ -31,35 +37,85 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			log.Warnf("AWS Config snapshot: empty resource type for item %s", item.ARN)
 			continue
 		}
-		// if this is a CloudFormation stack, track all of its resources
-		if item.ResourceType == stackResourceType {
-			for _, resource := range item.Relationships {
-				if resource.ResourceType == "" {
-					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
-					continue
-				}
-				// only care about those contained
-				if strings.TrimSpace(resource.Name) != stackContains {
-					continue
-				}
-				if _, ok := itemToLocation[resource.ResourceType]; !ok {
-					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
-				}
-				var (
-					detail *LocatedItem
-					ok     bool
-				)
-				if detail, ok = itemToLocation[resource.ResourceType][resource.ResourceID]; !ok {
-					detail = &LocatedItem{
-						ConfigurationItem: item,
-						config:            true,
-						cfn:               true,
-					}
-					itemToLocation[resource.ResourceType][resource.ResourceID] = detail
-				}
-				detail.cfn = true
+
+		var mappedType = true
+		if _, ok := awsConfigToTerraformTypeMap[item.ResourceType]; !ok {
+			mappedType = false
+		}
+		if _, ok := itemToLocation[item.ResourceType]; !ok {
+			itemToLocation[item.ResourceType] = make(map[string]*LocatedItem)
+		}
+		if _, ok := nameToLocation[item.ResourceType]; !ok {
+			nameToLocation[item.ResourceType] = make(map[string]*LocatedItem)
+		}
+		key := item.ResourceID
+		if key == "" {
+			key = item.ARN
+		}
+		var (
+			detail *LocatedItem
+			ok     bool
+		)
+		if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
+			detail = &LocatedItem{
+				ConfigurationItem: &item,
+				mappedType:        mappedType,
+			}
+			itemToLocation[item.ResourceType][key] = detail
+			// we also map by name, if it exists, knowing it is a duplicate;
+			// this is needed because the cloudformation and elasticbeanstalk stacks
+			// sometimes reference a name, even though they call it an ID
+			if item.ResourceName != "" {
+				itemToLocation[item.ResourceType][item.ResourceName] = detail
 			}
 		}
+		// we also map by name, if it exists, knowing it is a duplicate;
+		// this is needed because the cloudformation and elasticbeanstalk stacks
+		// sometimes reference a name, even though they call it an ID
+		if _, ok := nameToLocation[item.ResourceType][item.ResourceName]; !ok {
+			nameToLocation[item.ResourceType][item.ResourceName] = detail
+		}
+		detail.config = true
+	}
+
+	// second pass just for resources that contain others
+	for _, item := range snapshot.ConfigurationItems {
+		if item.ResourceType != resourceTypeStack && item.ResourceType != resourceTypeElasticBeanstack {
+			continue
+		}
+
+		// track subsidiary resources
+		for _, resource := range item.Relationships {
+			if resource.ResourceType == "" {
+				log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+				continue
+			}
+			// only care about those contained
+			if strings.TrimSpace(resource.Name) != resourceContains {
+				continue
+			}
+			if _, ok := itemToLocation[resource.ResourceType]; !ok {
+				itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+			}
+			var (
+				detail *LocatedItem
+				ok     bool
+			)
+			if detail, ok = itemToLocation[resource.ResourceType][resource.ResourceID]; !ok {
+				// try by name
+				if detail, ok = nameToLocation[resource.ResourceType][resource.ResourceID]; !ok {
+					log.Warnf("found unknown resource: %s %s", resource.ResourceType, resource.ResourceID)
+					continue
+				}
+			}
+			switch item.ResourceType {
+			case resourceTypeStack:
+				detail.cfn = true
+			case resourceTypeElasticBeanstack:
+				detail.beanstack = true
+			}
+		}
+
 		var mappedType = true
 		if _, ok := awsConfigToTerraformTypeMap[item.ResourceType]; !ok {
 			mappedType = false
@@ -77,10 +133,13 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		)
 		if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
 			detail = &LocatedItem{
-				ConfigurationItem: item,
+				ConfigurationItem: &item,
 				mappedType:        mappedType,
 			}
 			itemToLocation[item.ResourceType][key] = detail
+		}
+		if detail.ConfigurationItem == nil {
+			detail.ConfigurationItem = &item
 		}
 		detail.config = true
 	}
@@ -139,7 +198,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				// it is only in terraform
 				if item == nil {
 					item = &LocatedItem{
-						ConfigurationItem: load.ConfigurationItem{
+						ConfigurationItem: &load.ConfigurationItem{
 							ResourceType: configType,
 							ResourceID:   resourceId,
 							ARN:          arn,

@@ -19,6 +19,7 @@ type Relationship struct {
 type ConfigurationItem struct {
 	ResourceType  string         `json:"resourceType"`
 	ResourceID    string         `json:"resourceId"`
+	ResourceName  string         `json:"resourceName"`
 	ARN           string         `json:"ARN"`
 	Region        string         `json:"awsRegion"` // should be limited to certain regions
 	Zone          string         `json:"availabilityZone"`

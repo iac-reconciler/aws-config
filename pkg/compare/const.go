@@ -2,6 +2,7 @@ package compare
 
 const (
 	configComplianceResourceType = "AWS::Config::ResourceCompliance"
-	stackContains                = "Contains"
-	stackResourceType            = "AWS::CloudFormation::Stack"
+	resourceContains             = "Contains"
+	resourceTypeStack            = "AWS::CloudFormation::Stack"
+	resourceTypeElasticBeanstack = "AWS::ElasticBeanstalk::Application"
 )
