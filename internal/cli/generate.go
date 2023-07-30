@@ -21,6 +21,7 @@ func generate() *cobra.Command {
 		summarize, byResourceType bool
 		descending                bool
 		sortBy                    string
+		top                       int
 	)
 
 	const (
@@ -133,7 +134,18 @@ func generate() *cobra.Command {
 					}
 					return retVal
 				})
-				for _, item := range summary.ByType {
+				var results []compare.TypeSummary
+				// if limited
+				switch {
+				case top > 0:
+					results = summary.ByType[:top]
+				case top < 0:
+					results = summary.ByType[len(summary.ByType)+top:]
+				default:
+					results = summary.ByType
+				}
+
+				for _, item := range results {
 					fmt.Printf("%s: %d %d %d %d %d %d %d %d\n",
 						item.ResourceType,
 						item.Count,
@@ -172,5 +184,6 @@ func generate() *cobra.Command {
 	cmd.Flags().BoolVar(&summarize, "summary", false, "provide summary results")
 	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type only")
 	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+"; for by-type only")
+	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type only")
 	return cmd
 }
