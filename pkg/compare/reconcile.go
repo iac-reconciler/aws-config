@@ -30,6 +30,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	// we will do this in 2 passes. The first pass is to get the raw resources as they are
 	// the second pass is to find those resources that contain other resources
 	for _, item := range snapshot.ConfigurationItems {
+		item := item // otherwise the pointer goes back to the original
 		if item.ResourceType == configComplianceResourceType {
 			continue
 		}
