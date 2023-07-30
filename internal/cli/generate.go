@@ -105,7 +105,7 @@ func generate() *cobra.Command {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
 			if byResourceType {
-				fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC)\n")
+				fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC) (Config-Only)\n")
 				// sort the summary
 				sort.Slice(summary.ByType, func(i, j int) bool {
 					var retVal bool
