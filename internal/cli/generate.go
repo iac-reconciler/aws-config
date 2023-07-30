@@ -7,6 +7,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/iac-reconciler/tf-aws-config/pkg/compare"
 	"github.com/iac-reconciler/tf-aws-config/pkg/load"
@@ -15,8 +17,30 @@ import (
 
 func generate() *cobra.Command {
 	var (
-		tfRecursive, doSummary bool
+		tfRecursive               bool
+		summarize, byResourceType bool
+		descending                bool
+		sortBy                    string
 	)
+
+	const (
+		sortByResourceName        = "resource-name"
+		sortByCountTotal          = "count-total"
+		sortByCountConfig         = "count-config"
+		sortByCountTerraform      = "count-terraform"
+		sortByCountCloudFormation = "count-cloudformation"
+		sortByCountBeanstalk      = "count-beanstalk"
+		sortByCountBoth           = "count-both"
+		sortByDefault             = sortByResourceName
+	)
+	var sortOptions = []string{
+		sortByResourceName,
+		sortByCountTotal,
+		sortByCountConfig,
+		sortByCountTerraform,
+		sortByCountCloudFormation,
+		sortByCountBeanstalk,
+	}
 
 	cmd := &cobra.Command{
 		Use:     "generate",
@@ -78,39 +102,71 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
-			fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC)\n")
-			for _, item := range summary.ByType {
-				fmt.Printf("%s: %d %d %d %d %d %d %d\n",
-					item.ResourceType,
-					item.Count,
-					item.Source["config"],
-					item.Source["terraform"],
-					item.Source["cloudformation"],
-					item.Source["beanstalk"],
-					item.Source["eks"],
-					item.Source["both"],
-				)
+			if byResourceType {
+				fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC)\n")
+				// sort the summary
+				sort.Slice(summary.ByType, func(i, j int) bool {
+					var retVal bool
+					switch sortBy {
+					case sortByCountTotal:
+						retVal = summary.ByType[i].Count < summary.ByType[j].Count
+					case sortByCountConfig:
+						retVal = summary.ByType[i].Source["config"] < summary.ByType[j].Source["config"]
+					case sortByCountTerraform:
+						retVal = summary.ByType[i].Source["terraform"] < summary.ByType[j].Source["terraform"]
+					case sortByCountCloudFormation:
+						retVal = summary.ByType[i].Source["cloudformation"] < summary.ByType[j].Source["cloudformation"]
+					case sortByCountBeanstalk:
+						retVal = summary.ByType[i].Source["beanstalk"] < summary.ByType[j].Source["beanstalk"]
+					case sortByCountBoth:
+						retVal = summary.ByType[i].Source["both"] < summary.ByType[j].Source["both"]
+					case sortByResourceName:
+						retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
+					default:
+						retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
+					}
+					if descending {
+						retVal = !retVal
+					}
+					return retVal
+				})
+				for _, item := range summary.ByType {
+					fmt.Printf("%s: %d %d %d %d %d %d %d\n",
+						item.ResourceType,
+						item.Count,
+						item.Source["config"],
+						item.Source["terraform"],
+						item.Source["cloudformation"],
+						item.Source["beanstalk"],
+						item.Source["eks"],
+						item.Source["both"],
+					)
+				}
 			}
 
 			fmt.Println()
-			fmt.Printf("Summary:\n")
-			fmt.Printf("Both (Config+IaC): %d\n", summary.BothResources)
+			if summarize {
+				fmt.Printf("Summary:\n")
+				fmt.Printf("Both (Config+IaC): %d\n", summary.BothResources)
 
-			for _, source := range summary.Sources {
-				fmt.Printf("%s:\n", source.Name)
-				fmt.Printf("\tAll Resources: %d\n", source.Total)
-				fmt.Printf("\tOnly in %s: %d\n", source.Name, source.OnlyCount)
-				fmt.Printf("\t\tMapped (matching type in alternate): %d\n", source.OnlyMappedCount)
-				fmt.Printf("\t\tUnmapped (no matching type in alternate): %d\n", source.OnlyUnmappedCount)
+				for _, source := range summary.Sources {
+					fmt.Printf("%s:\n", source.Name)
+					fmt.Printf("\tAll Resources: %d\n", source.Total)
+					fmt.Printf("\tOnly in %s: %d\n", source.Name, source.OnlyCount)
+					fmt.Printf("\t\tMapped (matching type in alternate): %d\n", source.OnlyMappedCount)
+					fmt.Printf("\t\tUnmapped (no matching type in alternate): %d\n", source.OnlyUnmappedCount)
+				}
+				fmt.Printf("Terraform Files: %d\n", len(tfstates))
 			}
-			fmt.Printf("Terraform Files: %d\n", len(tfstates))
-
 			// no error
 			return nil
 		},
 	}
 
 	cmd.Flags().BoolVar(&tfRecursive, "tf-recursive", false, "treat the path to terraform state as a directory and recursively search for .tfstate files")
-	cmd.Flags().BoolVar(&doSummary, "summary", false, "provide summary results")
+	cmd.Flags().BoolVar(&byResourceType, "by-type", false, "list the count of locations of each resource type")
+	cmd.Flags().BoolVar(&summarize, "summary", false, "provide summary results")
+	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type only")
+	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+"; for by-type only")
 	return cmd
 }
