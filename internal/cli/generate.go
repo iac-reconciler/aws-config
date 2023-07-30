@@ -31,6 +31,7 @@ func generate() *cobra.Command {
 		sortByCountCloudFormation = "count-cloudformation"
 		sortByCountBeanstalk      = "count-beanstalk"
 		sortByCountBoth           = "count-both"
+		sortByCountSingleOnly     = "count-single"
 		sortByDefault             = sortByResourceName
 	)
 	var sortOptions = []string{
@@ -120,6 +121,8 @@ func generate() *cobra.Command {
 						retVal = summary.ByType[i].Source["beanstalk"] < summary.ByType[j].Source["beanstalk"]
 					case sortByCountBoth:
 						retVal = summary.ByType[i].Source["both"] < summary.ByType[j].Source["both"]
+					case sortByCountSingleOnly:
+						retVal = summary.ByType[i].Source["single-only"] < summary.ByType[j].Source["single-only"]
 					case sortByResourceName:
 						retVal = summary.ByType[i].ResourceType < summary.ByType[j].ResourceType
 					default:
@@ -131,7 +134,7 @@ func generate() *cobra.Command {
 					return retVal
 				})
 				for _, item := range summary.ByType {
-					fmt.Printf("%s: %d %d %d %d %d %d %d\n",
+					fmt.Printf("%s: %d %d %d %d %d %d %d %d\n",
 						item.ResourceType,
 						item.Count,
 						item.Source["config"],
@@ -140,6 +143,7 @@ func generate() *cobra.Command {
 						item.Source["beanstalk"],
 						item.Source["eks"],
 						item.Source["both"],
+						item.Source["config-only"],
 					)
 				}
 			}

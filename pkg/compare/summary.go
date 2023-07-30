@@ -112,16 +112,21 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			}
 		}
 		rtc = only[item.ResourceType]
-		switch {
-		case item.config && (item.terraform || item.cfn || item.beanstalk || item.eks):
+		if item.config && (item.terraform || item.cfn || item.beanstalk || item.eks) {
 			if _, ok := ts.Source["both"]; !ok {
 				ts.Source["both"] = 0
 			}
 			ts.Source["both"]++
 			results.BothResources++
-		case item.mappedType:
-			rtc.Mapped++
-		default:
+		} else {
+			if _, ok := ts.Source["single-only"]; !ok {
+				ts.Source["single-only"] = 0
+			}
+			ts.Source["single-only"]++
+		}
+		if item.mappedType {
+
+		} else {
 			rtc.Unmapped++
 		}
 	}
