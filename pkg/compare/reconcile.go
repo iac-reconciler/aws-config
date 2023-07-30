@@ -12,7 +12,7 @@ type LocatedItem struct {
 	terraform  bool
 	config     bool
 	cfn        bool
-	beanstack  bool
+	beanstalk  bool
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -98,7 +98,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 
 	// second pass just for resources that contain others
 	for _, item := range snapshot.ConfigurationItems {
-		if item.ResourceType != resourceTypeStack && item.ResourceType != resourceTypeElasticBeanstack {
+		if item.ResourceType != resourceTypeStack && item.ResourceType != resourceTypeElasticBeanstalk {
 			continue
 		}
 
@@ -133,8 +133,8 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			switch item.ResourceType {
 			case resourceTypeStack:
 				detail.cfn = true
-			case resourceTypeElasticBeanstack:
-				detail.beanstack = true
+			case resourceTypeElasticBeanstalk:
+				detail.beanstalk = true
 			}
 		}
 	}

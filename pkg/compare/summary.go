@@ -87,12 +87,12 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ts.Source["cloudformation"]++
 			only = cfnOnly
 		}
-		if item.beanstack {
+		if item.beanstalk {
 			beanstalk.Total++
-			if _, ok := ts.Source["beanstack"]; !ok {
-				ts.Source["beanstack"] = 0
+			if _, ok := ts.Source["beanstalk"]; !ok {
+				ts.Source["beanstalk"] = 0
 			}
-			ts.Source["beanstack"]++
+			ts.Source["beanstalk"]++
 			only = beanstalkOnly
 		}
 		if _, ok := only[item.ResourceType]; !ok {
@@ -102,7 +102,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 		rtc = only[item.ResourceType]
 		switch {
-		case item.config && (item.terraform || item.cfn || item.beanstack):
+		case item.config && (item.terraform || item.cfn || item.beanstalk):
 			if _, ok := ts.Source["both"]; !ok {
 				ts.Source["both"] = 0
 			}
