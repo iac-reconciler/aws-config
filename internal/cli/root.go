@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	rootCmd = &cobra.Command{Use: "tf-aws-config"}
+	rootCmd = &cobra.Command{Use: "aws-config"}
 	verbose bool
 )
 

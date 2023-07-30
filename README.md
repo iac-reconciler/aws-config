@@ -11,14 +11,14 @@ file to this utility.
 ## Usage
 
 ```bash
-$ tf-aws-config path/to/aws-config-snapshot.json path/to/terraform.tfstate
+$ aws-config path/to/aws-config-snapshot.json path/to/terraform.tfstate
 ```
 
 As many organizations split Terraform into multiple configs, each with their own
 statefile, you can tell it to search in a path and find all `*.tfstate` files:
 
 ```bash
-$ tf-aws-config generate path/to/aws-config-snapshot.json path/to/terraform/root --tf-recursive
+$ aws-config generate path/to/aws-config-snapshot.json path/to/terraform/root --tf-recursive
 ```
 
 ## Output

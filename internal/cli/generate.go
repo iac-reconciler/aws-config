@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/iac-reconciler/tf-aws-config/pkg/compare"
-	"github.com/iac-reconciler/tf-aws-config/pkg/load"
+	"github.com/iac-reconciler/aws-config/pkg/compare"
+	"github.com/iac-reconciler/aws-config/pkg/load"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ func generate() *cobra.Command {
 		Use:     "generate",
 		Short:   "Generate a unified summary of AWS Config snapshot and terraform files",
 		Long:    `Generate a unified summary of AWS Config snapshot and terraform files.`,
-		Example: `  tf-aws-config generate <aws-config-snapshot.json> <terraform.tfstate>`,
+		Example: `  aws-config generate <aws-config-snapshot.json> <terraform.tfstate>`,
 		Args:    cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			snapshotFile := args[0]

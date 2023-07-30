@@ -1,4 +1,4 @@
-module github.com/iac-reconciler/tf-aws-config
+module github.com/iac-reconciler/aws-config
 
 go 1.20
 

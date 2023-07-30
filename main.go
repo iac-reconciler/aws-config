@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/iac-reconciler/tf-aws-config/internal/cli"
+	"github.com/iac-reconciler/aws-config/internal/cli"
 )
 
 func main() {

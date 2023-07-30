@@ -3,7 +3,7 @@ package compare
 import (
 	"strings"
 
-	"github.com/iac-reconciler/tf-aws-config/pkg/load"
+	"github.com/iac-reconciler/aws-config/pkg/load"
 	log "github.com/sirupsen/logrus"
 )
 
