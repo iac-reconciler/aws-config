@@ -43,12 +43,14 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		config        = SourceSummary{Name: "config"}
 		cfn           = SourceSummary{Name: "cloudformation"}
 		beanstalk     = SourceSummary{Name: "beanstalk"}
+		eks           = SourceSummary{Name: "eks"}
 		only          map[string]*ResourceTypeCount
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
 		terraformOnly = make(map[string]*ResourceTypeCount)
 		cfnOnly       = make(map[string]*ResourceTypeCount)
 		beanstalkOnly = make(map[string]*ResourceTypeCount)
+		eksOnly       = make(map[string]*ResourceTypeCount)
 		byType        = make(map[string]*TypeSummary)
 	)
 	for _, item := range items {
@@ -95,6 +97,15 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ts.Source["beanstalk"]++
 			only = beanstalkOnly
 		}
+		if item.eks {
+			eks.Total++
+			if _, ok := ts.Source["eks"]; !ok {
+				ts.Source["eks"] = 0
+			}
+			ts.Source["eks"]++
+			only = eksOnly
+		}
+
 		if _, ok := only[item.ResourceType]; !ok {
 			only[item.ResourceType] = &ResourceTypeCount{
 				ResourceType: item.ResourceType,
@@ -102,7 +113,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 		rtc = only[item.ResourceType]
 		switch {
-		case item.config && (item.terraform || item.cfn || item.beanstalk):
+		case item.config && (item.terraform || item.cfn || item.beanstalk || item.eks):
 			if _, ok := ts.Source["both"]; !ok {
 				ts.Source["both"] = 0
 			}
@@ -132,6 +143,9 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 
 	processSummaries(&beanstalk, beanstalkOnly)
 	results.Sources = append(results.Sources, beanstalk)
+
+	processSummaries(&eks, eksOnly)
+	results.Sources = append(results.Sources, eks)
 
 	return results, nil
 }

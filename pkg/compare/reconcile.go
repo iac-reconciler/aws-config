@@ -13,6 +13,7 @@ type LocatedItem struct {
 	config     bool
 	cfn        bool
 	beanstalk  bool
+	eks        bool // indicates if the item is under the controller of the eks-vpc-resource-controller
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -92,6 +93,13 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					mappedType: true,
 					config:     true,
 				}
+			}
+		}
+
+		for tagName, tagValue := range item.Tags {
+			if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
+				detail.eks = true
+				break
 			}
 		}
 	}

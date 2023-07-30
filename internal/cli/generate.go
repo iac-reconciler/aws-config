@@ -78,15 +78,16 @@ func generate() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to summarize: %w", err)
 			}
-			fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk (Config+IaC)\n")
+			fmt.Printf("ResourceType Total Config Terraform CFN Beanstalk EKS (Config+IaC)\n")
 			for _, item := range summary.ByType {
-				fmt.Printf("%s: %d %d %d %d %d %d\n",
+				fmt.Printf("%s: %d %d %d %d %d %d %d\n",
 					item.ResourceType,
 					item.Count,
 					item.Source["config"],
 					item.Source["terraform"],
 					item.Source["cloudformation"],
 					item.Source["beanstalk"],
+					item.Source["eks"],
 					item.Source["both"],
 				)
 			}
