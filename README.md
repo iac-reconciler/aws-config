@@ -11,14 +11,14 @@ file to this utility.
 ## Usage
 
 ```bash
-$ aws-config path/to/aws-config-snapshot.json path/to/terraform.tfstate
+$ aws-config detail --aws-config path/to/aws-config-snapshot.json --terraform path/to/terraform.tfstate
 ```
 
 As many organizations split Terraform into multiple configs, each with their own
 statefile, you can tell it to search in a path and find all `*.tfstate` files:
 
 ```bash
-$ aws-config generate path/to/aws-config-snapshot.json path/to/terraform/root --tf-recursive
+$ aws-config generate --aws-config path/to/aws-config-snapshot.json --terraform path/to/terraform/root --tf-recursive
 ```
 
 ## Output
@@ -26,7 +26,7 @@ $ aws-config generate path/to/aws-config-snapshot.json path/to/terraform/root --
 The output is a list of all resources found in one, the other, or both.
 Each resource lists which it is found within, and the resource's type and ID.
 
-You can get summary statistics using the `--summary`.
+Run `aws-config` to list the various subcommands, such as `detail`, `resource`, `summarized`.
 
 ## Limitations
 
