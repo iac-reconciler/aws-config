@@ -100,9 +100,44 @@ func generate() *cobra.Command {
 			}
 
 			if detail != "" {
-				// print the detail
-				fmt.Printf("ResourceType ResourceName ResourceID ARN beanstalk %s\n", strings.Join(compare.SourceKeys, " "))
+				var results []*compare.LocatedItem
 				for _, item := range items {
+					if item.ResourceType != detail {
+						continue
+					}
+					results = append(results, item)
+				}
+				// print the detail
+				sort.Slice(results, func(i, j int) bool {
+					var retVal bool
+					if strings.HasPrefix(sortBy, "count-") {
+						key := strings.TrimPrefix(sortBy, "count-")
+						iValue := results[i].Value(key)
+						jValue := results[j].Value(key)
+						switch {
+						case iValue == jValue:
+							retVal = true
+						case iValue:
+							retVal = true
+						default:
+							retVal = false
+						}
+					} else {
+						retVal = results[i].ResourceType < results[j].ResourceType
+					}
+					if descending {
+						retVal = !retVal
+					}
+					return retVal
+				})
+				switch {
+				case top > 0:
+					results = results[:top]
+				case top < 0:
+					results = results[len(results)+top:]
+				}
+				fmt.Printf("ResourceType ResourceName ResourceID ARN beanstalk %s\n", strings.Join(compare.SourceKeys, " "))
+				for _, item := range results {
 					if item.ResourceType != detail {
 						continue
 					}
@@ -158,8 +193,7 @@ func generate() *cobra.Command {
 					results = summary.ByType
 				}
 
-				fmt.Printf("ResourceType Total (Config-Only) (Config+IaC) ")
-				fmt.Println(strings.Join(compare.SourceKeys, " "))
+				fmt.Printf("ResourceType Total (Config-Only) (Config+IaC) %s\n", strings.Join(compare.SourceKeys, " "))
 				for _, item := range results {
 					fmt.Printf("%s: %d %d %d ",
 						item.ResourceType,
@@ -196,9 +230,9 @@ func generate() *cobra.Command {
 	cmd.Flags().BoolVar(&tfRecursive, "tf-recursive", false, "treat the path to terraform state as a directory and recursively search for .tfstate files")
 	cmd.Flags().BoolVar(&byResourceType, "by-type", false, "list the count of locations of each resource type")
 	cmd.Flags().BoolVar(&summarize, "summary", false, "provide summary results")
-	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type only")
-	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+", as well as 'count-<field>', where <field> is any supported field, e.g. terraform or eks; for by-type only")
-	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type only")
+	cmd.Flags().BoolVar(&descending, "descending", false, "sort by descending instead of ascending; for by-type and detail")
+	cmd.Flags().StringVar(&sortBy, "sort", sortByDefault, "sort order for results, options are: "+strings.Join(sortOptions, " ")+", as well as 'count-<field>', where <field> is any supported field, e.g. terraform or eks; for by-type and detail")
+	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type and detail")
 	cmd.Flags().StringVar(&detail, "detail", "", "report resource detail for a single resource type")
 	return cmd
 }

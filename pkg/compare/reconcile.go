@@ -37,6 +37,22 @@ func (l LocatedItem) EKS() bool {
 	return l.eks
 }
 
+func (l LocatedItem) Value(name string) bool {
+	switch strings.ToLower(name) {
+	case "terraform":
+		return l.terraform
+	case "config":
+		return l.config
+	case "cloudformation":
+		return l.cfn
+	case "beanstalk":
+		return l.beanstalk
+	case "eks":
+		return l.eks
+	}
+	return false
+}
+
 // Reconcile reconcile the snapshot and tfstates.
 func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
 	// the keys are resource types, using the AWS-Config keys;
