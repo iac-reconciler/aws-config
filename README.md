@@ -1,7 +1,7 @@
-# Terraform to AWS Config Reconciler
+# AWS Config to Infrastructure-as-Code Reconciler
 
-Utility to enable reconciliation between one or more Terraform
-statefiles and the current state of your resources reported via AWS Config.
+Utility to enable reconciliation between AWS Config snapshot, and one or more Terraform
+statefiles, as well as possibly other IaC tools in the future.
 
 This does not (yet) contact AWS and do a report for you. It may at some point.
 For now, you need to enable [AWS Config](https://aws.amazon.com/config/), save
