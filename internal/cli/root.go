@@ -82,8 +82,8 @@ func root() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&tfRecursive, "tf-recursive", false, "treat the path to terraform state as a directory and recursively search for .tfstate files")
 	cmd.PersistentFlags().StringVar(&terraformPath, "terraform", "", "path to the terraform state file or directory containing .tfstate files; required")
 	cmd.PersistentFlags().StringVar(&snapshotFile, "aws-config", "", "path to the AWS Config snapshot json file; required")
-	cmd.MarkPersistentFlagRequired("terraform")
-	cmd.MarkPersistentFlagRequired("aws-config")
+	_ = cmd.MarkPersistentFlagRequired("terraform")
+	_ = cmd.MarkPersistentFlagRequired("aws-config")
 
 	return cmd
 }

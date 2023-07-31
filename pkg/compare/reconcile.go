@@ -14,6 +14,7 @@ type LocatedItem struct {
 	cfn        bool
 	beanstalk  bool
 	eks        bool // indicates if the item is under the controller of the eks-vpc-resource-controller
+	vpce       bool // indicates if the item is under the controller of a VPCEndpoint
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -109,7 +110,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		}
 		detail.config = true
 
-		// handle special resources that have children, e.g. routetable associations
+		// handle special resources that have children
+
+		// routetable associations
 		if item.ResourceType == resourceTypeRouteTable {
 			// we will just create resources for these associations, as that is how AWSConfig
 			// (sort of) sees it
@@ -132,6 +135,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		// EKS-created ENIs
 		for tagName, tagValue := range item.Tags {
 			if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
 				detail.eks = true
@@ -142,46 +146,69 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 
 	// second pass just for resources that contain others
 	for _, item := range snapshot.ConfigurationItems {
-		if item.ResourceType != resourceTypeStack && item.ResourceType != resourceTypeElasticBeanstalk {
-			continue
-		}
-
-		// track subsidiary resources
-		for _, resource := range item.Relationships {
-			if resource.ResourceType == "" {
-				log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
-				continue
-			}
-			// only care about those contained
-			if strings.TrimSpace(resource.Name) != resourceContains {
-				continue
-			}
-			if _, ok := itemToLocation[resource.ResourceType]; !ok {
-				itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
-			}
-			var (
-				detail *LocatedItem
-				ok     bool
-			)
-			key := resource.ResourceID
-			if key == "" {
-				key = resource.ResourceName
-			}
-			if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
-				// try by name
-				if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
-					log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
+		if item.ResourceType == resourceTypeStack || item.ResourceType == resourceTypeElasticBeanstalk {
+			// track subsidiary resources
+			for _, resource := range item.Relationships {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
 					continue
 				}
+				// only care about those contained
+				if strings.TrimSpace(resource.Name) != resourceContains {
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				key := resource.ResourceID
+				if key == "" {
+					key = resource.ResourceName
+				}
+				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
+					// try by name
+					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
+						log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
+						continue
+					}
+				}
+				switch item.ResourceType {
+				case resourceTypeStack:
+					detail.cfn = true
+				case resourceTypeElasticBeanstalk:
+					detail.beanstalk = true
+				}
 			}
-			switch item.ResourceType {
-			case resourceTypeStack:
-				detail.cfn = true
-			case resourceTypeElasticBeanstalk:
-				detail.beanstalk = true
+		}
+
+		// VPC-Endpoint-owned ENIs
+		if item.ResourceType == resourceTypeVPCEndpoint {
+			// we will just create resources for these associations, as that is how AWSConfig
+			// sees it
+			subType := resourceTypeENI
+			if _, ok := itemToLocation[subType]; !ok {
+				itemToLocation[subType] = make(map[string]*LocatedItem)
+			}
+			if _, ok := nameToLocation[subType]; !ok {
+				nameToLocation[subType] = make(map[string]*LocatedItem)
+			}
+			for _, eni := range item.Configuration.NetworkInterfaceIDs {
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				if detail, ok = itemToLocation[subType][eni]; !ok {
+					log.Warnf("found unknown resource: %s %s", subType, eni)
+					continue
+				}
+				detail.vpce = true
 			}
 		}
 	}
+
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot
 	// This would be easy if there were standards, but everything is driven by the provider,
 	// terraform itself has no standard or intelligence about it, so we need to know all of them.

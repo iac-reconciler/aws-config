@@ -32,7 +32,8 @@ type ConfigurationItem struct {
 }
 
 type Configuration struct {
-	Associations []Association `json:"associations"`
+	Associations        []Association `json:"associations"`
+	NetworkInterfaceIDs []string      `json:"networkInterfaceIds"`
 }
 
 type Association struct {
