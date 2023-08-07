@@ -3,17 +3,12 @@ package compare
 import "sort"
 
 const (
-	sourceBeanstalk      = "beanstalk"
-	sourceEKS            = "eks"
-	sourceVPCE           = "vpce"
-	sourceTerraform      = "terraform"
-	sourceConfig         = "config"
-	sourceInstance       = "instance"
-	sourceCloudFormation = "cloudformation"
+	sourceTerraform = "terraform"
+	sourceConfig    = "config"
 )
 
 var (
-	SourceKeys = []string{sourceBeanstalk, sourceEKS, sourceVPCE, sourceTerraform, sourceConfig, sourceCloudFormation, sourceInstance}
+	SourceKeys = []string{sourceTerraform, sourceConfig}
 )
 
 func init() {
@@ -62,26 +57,19 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 	var (
 		terraform     = SourceSummary{Name: sourceTerraform}
 		config        = SourceSummary{Name: sourceConfig}
-		cfn           = SourceSummary{Name: sourceCloudFormation}
-		beanstalk     = SourceSummary{Name: sourceBeanstalk}
-		eks           = SourceSummary{Name: sourceEKS}
-		vpce          = SourceSummary{Name: sourceVPCE}
-		instance      = SourceSummary{Name: sourceInstance}
 		only          map[string]*ResourceTypeCount
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
 		terraformOnly = make(map[string]*ResourceTypeCount)
-		cfnOnly       = make(map[string]*ResourceTypeCount)
-		beanstalkOnly = make(map[string]*ResourceTypeCount)
-		eksOnly       = make(map[string]*ResourceTypeCount)
-		vpceOnly      = make(map[string]*ResourceTypeCount)
-		instanceOnly  = make(map[string]*ResourceTypeCount)
 		byType        = make(map[string]*TypeSummary)
 	)
+	// loop through all of the LocatedItems and collate summary info
 	for _, item := range items {
+		// any item which has no ConfigurationItem can be ignored
 		if item.ConfigurationItem == nil {
 			continue
 		}
+		// ensure we have a TypeSummary for this type
 		if _, ok := byType[item.ResourceType]; !ok {
 			byType[item.ResourceType] = &TypeSummary{
 				ResourceType: item.ResourceType,
@@ -90,6 +78,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		}
 		ts := byType[item.ResourceType]
 		ts.Count++
+
 		if item.terraform {
 			terraform.Total++
 			if _, ok := ts.Source[sourceTerraform]; !ok {
@@ -106,46 +95,6 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ts.Source[sourceConfig]++
 			only = configOnly
 		}
-		if item.cfn {
-			cfn.Total++
-			if _, ok := ts.Source[sourceCloudFormation]; !ok {
-				ts.Source[sourceCloudFormation] = 0
-			}
-			ts.Source[sourceCloudFormation]++
-			only = cfnOnly
-		}
-		if item.beanstalk {
-			beanstalk.Total++
-			if _, ok := ts.Source[sourceBeanstalk]; !ok {
-				ts.Source[sourceBeanstalk] = 0
-			}
-			ts.Source[sourceBeanstalk]++
-			only = beanstalkOnly
-		}
-		if item.eks {
-			eks.Total++
-			if _, ok := ts.Source[sourceEKS]; !ok {
-				ts.Source[sourceEKS] = 0
-			}
-			ts.Source[sourceEKS]++
-			only = eksOnly
-		}
-		if item.vpce {
-			vpce.Total++
-			if _, ok := ts.Source[sourceVPCE]; !ok {
-				ts.Source[sourceVPCE] = 0
-			}
-			ts.Source[sourceVPCE]++
-			only = vpceOnly
-		}
-		if item.instance {
-			instance.Total++
-			if _, ok := ts.Source[sourceInstance]; !ok {
-				ts.Source[sourceInstance] = 0
-			}
-			ts.Source[sourceInstance]++
-			only = instanceOnly
-		}
 
 		if _, ok := only[item.ResourceType]; !ok {
 			only[item.ResourceType] = &ResourceTypeCount{
@@ -153,7 +102,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			}
 		}
 		rtc = only[item.ResourceType]
-		if item.config && (item.terraform || item.cfn || item.beanstalk || item.eks || item.vpce || item.instance) {
+		if item.config && item.parent != nil {
 			ts.Both++
 			results.BothResources++
 		} else {
@@ -178,21 +127,6 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 
 	processSummaries(&config, configOnly)
 	results.Sources = append(results.Sources, config)
-
-	processSummaries(&cfn, cfnOnly)
-	results.Sources = append(results.Sources, cfn)
-
-	processSummaries(&beanstalk, beanstalkOnly)
-	results.Sources = append(results.Sources, beanstalk)
-
-	processSummaries(&eks, eksOnly)
-	results.Sources = append(results.Sources, eks)
-
-	processSummaries(&vpce, vpceOnly)
-	results.Sources = append(results.Sources, vpce)
-
-	processSummaries(&instance, instanceOnly)
-	results.Sources = append(results.Sources, instance)
 
 	return results, nil
 }

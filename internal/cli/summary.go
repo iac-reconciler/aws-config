@@ -26,6 +26,7 @@ func summarize() *cobra.Command {
 				fmt.Printf("%s: %d %d %d %d\n", source.Name, source.Total, source.OnlyCount, source.OnlyMappedCount, source.OnlyUnmappedCount)
 			}
 			fmt.Printf("Terraform Files: %d\n", len(tfstates))
+
 			// no error
 			return nil
 		},

@@ -50,8 +50,8 @@ func detail() *cobra.Command {
 				var retVal bool
 				if strings.HasPrefix(sortBy, "count-") {
 					key := strings.TrimPrefix(sortBy, "count-")
-					iValue := results[i].Value(key)
-					jValue := results[j].Value(key)
+					iValue := results[i].Source(key)
+					jValue := results[j].Source(key)
 					switch {
 					case iValue == jValue:
 						retVal = true
@@ -74,22 +74,21 @@ func detail() *cobra.Command {
 			case top < 0:
 				results = results[len(results)+top:]
 			}
-			fmt.Printf("ResourceType ResourceName ResourceID ARN beanstalk %s\n", strings.Join(compare.SourceKeys, " "))
+			fmt.Printf("ResourceType ResourceName ResourceID ARN %s\n", strings.Join(compare.SourceKeys, " "))
 			for _, item := range results {
 				if item.ResourceType != detail {
 					continue
 				}
-				fmt.Printf("%s %s %s %s %v %v %v %v %v\n",
+				fmt.Printf("%s %s %s %s",
 					item.ResourceType,
 					item.ResourceName,
 					item.ResourceID,
 					item.ARN,
-					item.Beanstalk(),
-					item.CloudFormation(),
-					item.Config(),
-					item.EKS(),
-					item.Terraform(),
 				)
+				for _, key := range compare.SourceKeys {
+					fmt.Printf(" %v", item.Source(key))
+				}
+				fmt.Println()
 			}
 
 			// no error

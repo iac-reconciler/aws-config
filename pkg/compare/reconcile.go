@@ -7,52 +7,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// LocatedItem is a configuration item that has been located in a source.
+// That source could be a snapshot, a terraform state, or both.
+// It also includes a parent, if any.
 type LocatedItem struct {
 	*load.ConfigurationItem
-	terraform  bool
 	config     bool
-	cfn        bool
-	beanstalk  bool
-	eks        bool // indicates if the item is under the controller of the eks-vpc-resource-controller
-	vpce       bool // indicates if the item is under the controller of a VPCEndpoint
-	instance   bool // indicates if the item is under the controller of an EC2 instance
+	terraform  bool
+	parent     *LocatedItem
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
-func (l LocatedItem) Terraform() bool {
-	return l.terraform
-}
-
-func (l LocatedItem) Config() bool {
+func (l LocatedItem) Source(src string) bool {
 	return l.config
-}
-
-func (l LocatedItem) CloudFormation() bool {
-	return l.cfn
-}
-
-func (l LocatedItem) Beanstalk() bool {
-	return l.beanstalk
-}
-
-func (l LocatedItem) EKS() bool {
-	return l.eks
-}
-
-func (l LocatedItem) Value(name string) bool {
-	switch strings.ToLower(name) {
-	case "terraform":
-		return l.terraform
-	case "config":
-		return l.config
-	case "cloudformation":
-		return l.cfn
-	case "beanstalk":
-		return l.beanstalk
-	case "eks":
-		return l.eks
-	}
-	return false
 }
 
 // Reconcile reconcile the snapshot and tfstates.
@@ -135,18 +102,47 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				}
 			}
 		}
-
-		// EKS-created ENIs
-		for tagName, tagValue := range item.Tags {
-			if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
-				detail.eks = true
-				break
-			}
-		}
 	}
 
 	// second pass just for resources that contain others
 	for _, item := range snapshot.ConfigurationItems {
+		// get the correct LocatedItem pointer for this item
+		var (
+			located *LocatedItem
+			ok      bool
+		)
+		key := item.ResourceID
+		if key == "" {
+			key = item.ARN
+		}
+		if located, ok = itemToLocation[item.ResourceType][key]; !ok {
+			log.Warnf("found unknown resource: %s %s", item.ResourceType, key)
+			continue
+		}
+
+		// EKS-created ENIs
+		var (
+			clusterName string
+			eniTag      bool
+		)
+		for tagName, tagValue := range item.Tags {
+			if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
+				clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+			}
+			if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
+				eniTag = true
+			}
+		}
+		if clusterName != "" && eniTag {
+			// this is an EKS-created ENI
+			// find the parent, and mark it
+			if eks, ok := itemToLocation[resourceTypeEksCluster]; ok {
+				if parent, ok := eks[clusterName]; ok {
+					located.parent = parent
+				}
+			}
+		}
+
 		if item.ResourceType == resourceTypeStack || item.ResourceType == resourceTypeElasticBeanstalk {
 			// track subsidiary resources
 			for _, resource := range item.Relationships {
@@ -176,12 +172,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						continue
 					}
 				}
-				switch item.ResourceType {
-				case resourceTypeStack:
-					detail.cfn = true
-				case resourceTypeElasticBeanstalk:
-					detail.beanstalk = true
-				}
+				detail.parent = located
 			}
 		}
 
@@ -205,24 +196,12 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					log.Warnf("found unknown resource: %s %s", subType, eni)
 					continue
 				}
-				detail.vpce = true
+				detail.parent = located
 			}
 		}
 
 		// EC2-instance owned volumes
 		if item.ResourceType == resourceTypeEBSVolume {
-			var (
-				detail *LocatedItem
-				ok     bool
-			)
-			key := item.ResourceID
-			if key == "" {
-				key = item.ARN
-			}
-			if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
-				log.Warnf("found unknown resource: %s %s", item.ResourceType, key)
-				continue
-			}
 			// indicate that it is owned by whatever it is attached to
 			for _, resource := range item.Relationships {
 				if resource.ResourceType == "" {
@@ -240,14 +219,17 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				if key == "" {
 					key = resource.ResourceName
 				}
-				if _, ok := itemToLocation[resource.ResourceType][key]; !ok {
+				var (
+					detail *LocatedItem
+				)
+				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
 					// try by name
-					if _, ok := nameToLocation[resource.ResourceType][key]; !ok {
+					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
 						log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
 						continue
 					}
 				}
-				detail.instance = true
+				located.parent = detail
 			}
 		}
 	}
@@ -321,8 +303,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		}
 	}
 
-	// now we have all of the resources listed as in Terraform, Config or both
-	// so create the reconciled info
 	for _, locations := range itemToLocation {
 		for _, item := range locations {
 			items = append(items, item)
