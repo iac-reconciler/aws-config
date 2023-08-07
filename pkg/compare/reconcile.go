@@ -232,6 +232,24 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				located.parent = detail
 			}
 		}
+
+		// ASG-owned ec2 instances
+		if item.ResourceType == resourceTypeASG {
+			// indicate that it is owned by whatever it is attached to
+			for _, instance := range item.Configuration.Instances {
+				if _, ok := itemToLocation[resourceTypeEC2Instance]; !ok {
+					itemToLocation[resourceTypeEC2Instance] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+				)
+				if detail, ok = itemToLocation[resourceTypeEC2Instance][instance.InstanceID]; !ok {
+					log.Warnf("found unknown resource: %s %s", resourceTypeEC2Instance, key)
+					continue
+				}
+				detail.parent = located
+			}
+		}
 	}
 
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot

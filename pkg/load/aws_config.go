@@ -34,10 +34,17 @@ type ConfigurationItem struct {
 type Configuration struct {
 	Associations        []Association `json:"associations"`
 	NetworkInterfaceIDs []string      `json:"networkInterfaceIds"`
+	Instances           []EC2Instance `json:"instances,omitempty"`
 }
 
 type Association struct {
 	AssociationID string `json:"routeTableAssociationId"`
 	RouteTableID  string `json:"routeTableId"`
 	SubnetID      string `json:"subnetId"`
+}
+
+type EC2Instance struct {
+	InstanceID       string `json:"instanceId"`
+	InstanceType     string `json:"instanceType"`
+	AvailabilityZone string `json:"availabilityZone"`
 }
