@@ -16,6 +16,11 @@ const (
 	resourceTypeASG                   = "AWS::AutoScaling::AutoScalingGroup"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
+	terraformIAMPolicyType            = "aws_iam_policy"
 	eksClusterOwnerTagNamePrefix      = "kubernetes.io/cluster/"
 	owned                             = "owned"
+
+	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
+	terraformAWSProvider         = "provider.aws"
+	terraformAWSProviderSuffix   = "provider.aws"
 )

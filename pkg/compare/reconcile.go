@@ -19,7 +19,14 @@ type LocatedItem struct {
 }
 
 func (l LocatedItem) Source(src string) bool {
-	return l.config
+	switch strings.ToLower(src) {
+	case "config":
+		return l.config
+	case "terraform":
+		return l.terraform
+	default:
+		return false
+	}
 }
 
 // Reconcile reconcile the snapshot and tfstates.
@@ -262,7 +269,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				continue
 			}
 			// only care about aws resources
-			if resource.Provider != "provider.aws" && resource.Provider != `provider["registry.terraform.io/hashicorp/aws"]"` {
+			if resource.Provider != terraformAWSProvider &&
+				resource.Provider != terraformAWSRegistryProvider &&
+				!strings.HasSuffix(resource.Provider, terraformAWSProviderSuffix) {
 				continue
 			}
 			// look up the resource type
@@ -280,11 +289,11 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 			for j, instance := range resource.Instances {
 				var (
-					resourceId, arn string
-					item            *LocatedItem
-					key             string
+					resourceId, arn, name string
+					item                  *LocatedItem
+					key                   string
 				)
-				// try by arn first
+				// try by arn first - some, however, prioritize others. We need the one that matches the resourceId
 				arnPtr := instance.Attributes["arn"]
 				if arnPtr != nil {
 					arn = arnPtr.(string)
@@ -293,29 +302,39 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				if resourceIdPtr != nil {
 					resourceId = resourceIdPtr.(string)
 				}
-				if arn != "" {
+				namePtr := instance.Attributes["name"]
+				if namePtr != nil {
+					name = namePtr.(string)
+				}
+
+				switch {
+				case arn != "":
 					key = arn
-				} else if resourceId != "" {
+				case resourceId != "":
 					key = resourceId
-				} else {
+				default:
 					log.Warnf("unable to find resource ID or ARN for resource %d, instance %d in file %s", i, j, statefile)
 					continue
 				}
-				item = itemToLocation[configType][key]
 
-				// if we could not find it by ARN or by configType+id, then
-				// it is only in terraform
-				if item == nil {
-					item = &LocatedItem{
-						ConfigurationItem: &load.ConfigurationItem{
-							ResourceType: configType,
-							ResourceID:   resourceId,
-							ARN:          arn,
-						},
-						mappedType: mappedType,
+				item, ok = itemToLocation[configType][key]
+				if !ok {
+					item, ok = nameToLocation[configType][name]
+					if !ok {
+						// if we could not find it by ARN or by configType+id or configType+name, then
+						// it is only in terraform
+						item = &LocatedItem{
+							ConfigurationItem: &load.ConfigurationItem{
+								ResourceType: configType,
+								ResourceID:   resourceId,
+								ARN:          arn,
+							},
+							mappedType: mappedType,
+						}
+						itemToLocation[configType][key] = item
 					}
-					itemToLocation[configType][key] = item
 				}
+
 				item.terraform = true
 			}
 		}
