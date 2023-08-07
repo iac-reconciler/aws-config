@@ -102,7 +102,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			}
 		}
 		rtc = only[item.ResourceType]
-		if item.config && item.parent != nil {
+		if item.config && (item.terraform || item.parent != nil) {
 			ts.Both++
 			results.BothResources++
 		} else {
