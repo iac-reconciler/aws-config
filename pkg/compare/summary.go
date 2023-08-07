@@ -8,11 +8,12 @@ const (
 	sourceVPCE           = "vpce"
 	sourceTerraform      = "terraform"
 	sourceConfig         = "config"
+	sourceInstance       = "instance"
 	sourceCloudFormation = "cloudformation"
 )
 
 var (
-	SourceKeys = []string{sourceBeanstalk, sourceEKS, sourceVPCE, sourceTerraform, sourceConfig, sourceCloudFormation}
+	SourceKeys = []string{sourceBeanstalk, sourceEKS, sourceVPCE, sourceTerraform, sourceConfig, sourceCloudFormation, sourceInstance}
 )
 
 func init() {
@@ -65,6 +66,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		beanstalk     = SourceSummary{Name: sourceBeanstalk}
 		eks           = SourceSummary{Name: sourceEKS}
 		vpce          = SourceSummary{Name: sourceVPCE}
+		instance      = SourceSummary{Name: sourceInstance}
 		only          map[string]*ResourceTypeCount
 		rtc           *ResourceTypeCount
 		configOnly    = make(map[string]*ResourceTypeCount)
@@ -73,6 +75,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		beanstalkOnly = make(map[string]*ResourceTypeCount)
 		eksOnly       = make(map[string]*ResourceTypeCount)
 		vpceOnly      = make(map[string]*ResourceTypeCount)
+		instanceOnly  = make(map[string]*ResourceTypeCount)
 		byType        = make(map[string]*TypeSummary)
 	)
 	for _, item := range items {
@@ -135,6 +138,14 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			ts.Source[sourceVPCE]++
 			only = vpceOnly
 		}
+		if item.instance {
+			instance.Total++
+			if _, ok := ts.Source[sourceInstance]; !ok {
+				ts.Source[sourceInstance] = 0
+			}
+			ts.Source[sourceInstance]++
+			only = instanceOnly
+		}
 
 		if _, ok := only[item.ResourceType]; !ok {
 			only[item.ResourceType] = &ResourceTypeCount{
@@ -142,7 +153,7 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 			}
 		}
 		rtc = only[item.ResourceType]
-		if item.config && (item.terraform || item.cfn || item.beanstalk || item.eks || item.vpce) {
+		if item.config && (item.terraform || item.cfn || item.beanstalk || item.eks || item.vpce || item.instance) {
 			ts.Both++
 			results.BothResources++
 		} else {
@@ -179,6 +190,9 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 
 	processSummaries(&vpce, vpceOnly)
 	results.Sources = append(results.Sources, vpce)
+
+	processSummaries(&instance, instanceOnly)
+	results.Sources = append(results.Sources, instance)
 
 	return results, nil
 }

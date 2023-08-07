@@ -15,6 +15,7 @@ type LocatedItem struct {
 	beanstalk  bool
 	eks        bool // indicates if the item is under the controller of the eks-vpc-resource-controller
 	vpce       bool // indicates if the item is under the controller of a VPCEndpoint
+	instance   bool // indicates if the item is under the controller of an EC2 instance
 	mappedType bool // indicates if the type was mapped between sources, or unique
 }
 
@@ -205,6 +206,48 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					continue
 				}
 				detail.vpce = true
+			}
+		}
+
+		// EC2-instance owned volumes
+		if item.ResourceType == resourceTypeEBSVolume {
+			var (
+				detail *LocatedItem
+				ok     bool
+			)
+			key := item.ResourceID
+			if key == "" {
+				key = item.ARN
+			}
+			if detail, ok = itemToLocation[item.ResourceType][key]; !ok {
+				log.Warnf("found unknown resource: %s %s", item.ResourceType, key)
+				continue
+			}
+			// indicate that it is owned by whatever it is attached to
+			for _, resource := range item.Relationships {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+					continue
+				}
+				// only care about those attached-to
+				if strings.TrimSpace(resource.Name) != resourceAttachedToInstance {
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				key := resource.ResourceID
+				if key == "" {
+					key = resource.ResourceName
+				}
+				if _, ok := itemToLocation[resource.ResourceType][key]; !ok {
+					// try by name
+					if _, ok := nameToLocation[resource.ResourceType][key]; !ok {
+						log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
+						continue
+					}
+				}
+				detail.instance = true
 			}
 		}
 	}
