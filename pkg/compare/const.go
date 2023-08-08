@@ -22,6 +22,7 @@ const (
 	owned                             = "owned"
 	awsELBOwner                       = "amazon-elb"
 	elbPrefix                         = "ELB "
+	k8sInstanceTag                    = "node.k8s.amazonaws.com/instance_id"
 
 	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
 	terraformAWSProvider         = "provider.aws"

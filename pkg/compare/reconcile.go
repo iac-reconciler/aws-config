@@ -138,6 +138,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			var (
 				clusterName string
 				eniTag      bool
+				nodeId      string
 			)
 			for tagName, tagValue := range item.Tags {
 				if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
@@ -146,21 +147,45 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
 					eniTag = true
 				}
+				if tagName == k8sInstanceTag {
+					nodeId = tagValue
+				}
 			}
-			if !eniTag {
-				continue
-			}
-			if clusterName != "" {
+			switch {
+			case eniTag && clusterName != "":
 				// this is an EKS-created ENI
 				// find the parent, and mark it
-				if eks, ok := itemToLocation[resourceTypeEksCluster]; ok {
-					if parent, ok := eks[clusterName]; ok {
+				if resources, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+					}
+				}
+			case nodeId != "":
+				// this is a EC2 instance-created ENI
+				// find the parent, and mark it
+				if resources, ok := itemToLocation[resourceTypeEC2Instance]; ok {
+					if parent, ok := resources[nodeId]; ok {
 						located.parent = parent
 					}
 				}
 			}
 		}
 
+		// EC2-created instances
+		if item.ResourceType == resourceTypeEC2Instance {
+			for _, rel := range item.Relationships {
+				if rel.ResourceType == resourceTypeENI {
+					// find the parent, and mark it
+					if resources, ok := itemToLocation[resourceTypeENI]; ok {
+						if eni, ok := resources[rel.ResourceID]; ok {
+							eni.parent = located
+						}
+					}
+				}
+			}
+		}
+
+		// CloudFormation and Beanstalk created items
 		if item.ResourceType == resourceTypeStack || item.ResourceType == resourceTypeElasticBeanstalk {
 			// track subsidiary resources
 			for _, resource := range item.Relationships {
