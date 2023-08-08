@@ -37,6 +37,7 @@ type Configuration struct {
 	NetworkInterfaceIDs []string      `json:"networkInterfaceIds"`
 	Instances           []EC2Instance `json:"instances,omitempty"`
 	Description         string        `json:"description"`
+	InterfaceType       string        `json:"interfaceType,omitempty"`
 }
 
 type Association struct {

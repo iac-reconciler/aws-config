@@ -1,6 +1,7 @@
 package compare
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/iac-reconciler/aws-config/pkg/load"
@@ -306,23 +307,30 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
-			if item.Configuration.Association.IPOwnerID != awsELBOwner {
-				continue
-			}
-			// find the ELB that owns it, make it the parent
-			if !strings.HasPrefix(item.Configuration.Description, elbPrefix) {
-				continue
-			}
-			elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
-			// now find the correct ELB
-			var elbMap map[string]*LocatedItem
-			if elbMap, ok = itemToLocation[resourceTypeELB]; !ok {
-				continue
-			}
-			if elb, ok := elbMap[elbName]; !ok {
-				continue
-			} else {
-				located.parent = elb
+			switch {
+			case item.Configuration.InterfaceType == nlb && strings.HasPrefix(item.Configuration.Description, elbPrefix):
+				// NLB owner
+				region := item.Region
+				account := item.AccountID
+				nlbID := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
+				if region != "" && account != "" {
+					nlbArn := fmt.Sprintf("%s:%s:%s:loadbalancer/%s", elbArnPrefix, region, account, nlbID)
+					if elbMap, ok := itemToLocation[resourceTypeELBV2]; ok {
+						if elb, ok := elbMap[nlbArn]; ok {
+							located.parent = elb
+						}
+					}
+				}
+
+			case item.Configuration.Association.IPOwnerID == awsELBOwner && strings.HasPrefix(item.Configuration.Description, elbPrefix):
+				// find the ELB that owns it, make it the parent
+				elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
+				// now find the correct ELB
+				if elbMap, ok := itemToLocation[resourceTypeELB]; ok {
+					if elb, ok := elbMap[elbName]; ok {
+						located.parent = elb
+					}
+				}
 			}
 		}
 	}
