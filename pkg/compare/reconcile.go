@@ -308,7 +308,18 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {
-			case item.Configuration.InterfaceType == nlb && strings.HasPrefix(item.Configuration.Description, elbPrefix):
+			case item.Configuration.Association.IPOwnerID == awsELBOwner && strings.HasPrefix(item.Configuration.Description, elbPrefix):
+				// find the ELB that owns it, make it the parent
+				elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
+				// now find the correct ELB
+				if elbMap, ok := itemToLocation[resourceTypeELB]; ok {
+					if elb, ok := elbMap[elbName]; ok {
+						located.parent = elb
+					}
+				}
+
+			case strings.HasPrefix(item.Configuration.Description, elbPrefix) &&
+				(item.Configuration.InterfaceType == nlb || item.Configuration.Attachment.InstanceOwnerID == awsELBOwner):
 				// NLB owner
 				region := item.Region
 				account := item.AccountID
@@ -319,16 +330,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						if elb, ok := elbMap[nlbArn]; ok {
 							located.parent = elb
 						}
-					}
-				}
-
-			case item.Configuration.Association.IPOwnerID == awsELBOwner && strings.HasPrefix(item.Configuration.Description, elbPrefix):
-				// find the ELB that owns it, make it the parent
-				elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
-				// now find the correct ELB
-				if elbMap, ok := itemToLocation[resourceTypeELB]; ok {
-					if elb, ok := elbMap[elbName]; ok {
-						located.parent = elb
 					}
 				}
 			}
