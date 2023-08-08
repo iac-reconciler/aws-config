@@ -15,6 +15,7 @@ const (
 	resourceTypeEksCluster            = "AWS::EKS::Cluster"
 	resourceTypeASG                   = "AWS::AutoScaling::AutoScalingGroup"
 	resourceTypeELB                   = "AWS::ElasticLoadBalancing::LoadBalancer"
+	resourceTypeRDSInstance           = "AWS::RDS::DBInstance"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
 	terraformIAMPolicyType            = "aws_iam_policy"
@@ -23,6 +24,7 @@ const (
 	awsELBOwner                       = "amazon-elb"
 	elbPrefix                         = "ELB "
 	k8sInstanceTag                    = "node.k8s.amazonaws.com/instance_id"
+	rdsENI                            = "RDSNetworkInterface"
 
 	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
 	terraformAWSProvider         = "provider.aws"

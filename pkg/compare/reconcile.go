@@ -135,6 +135,16 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 
 		// EKS-created ENIs
 		if item.ResourceType == resourceTypeENI {
+			// handle RDS instance-owned ENIs; which, unfortunately, are not tagged on either side
+			// who would believe it?
+			if item.Configuration.Description == rdsENI {
+				located.parent = &LocatedItem{
+					ConfigurationItem: &load.ConfigurationItem{
+						ResourceType: resourceTypeRDSInstance,
+					},
+				}
+			}
+
 			var (
 				clusterName string
 				eniTag      bool
