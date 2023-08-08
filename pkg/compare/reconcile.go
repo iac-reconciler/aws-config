@@ -128,24 +128,29 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		}
 
 		// EKS-created ENIs
-		var (
-			clusterName string
-			eniTag      bool
-		)
-		for tagName, tagValue := range item.Tags {
-			if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
-				clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+		if item.ResourceType == resourceTypeENI {
+			var (
+				clusterName string
+				eniTag      bool
+			)
+			for tagName, tagValue := range item.Tags {
+				if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
+					clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+				}
+				if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
+					eniTag = true
+				}
 			}
-			if tagName == eksEniOwnerTagName && tagValue == eksEniOwnerTagValue {
-				eniTag = true
+			if !eniTag {
+				continue
 			}
-		}
-		if clusterName != "" && eniTag {
-			// this is an EKS-created ENI
-			// find the parent, and mark it
-			if eks, ok := itemToLocation[resourceTypeEksCluster]; ok {
-				if parent, ok := eks[clusterName]; ok {
-					located.parent = parent
+			if clusterName != "" {
+				// this is an EKS-created ENI
+				// find the parent, and mark it
+				if eks, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := eks[clusterName]; ok {
+						located.parent = parent
+					}
 				}
 			}
 		}
