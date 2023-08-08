@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/iac-reconciler/aws-config/pkg/load"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,6 +46,8 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	var (
 		itemToLocation = make(map[string]map[string]*LocatedItem)
 		nameToLocation = make(map[string]map[string]*LocatedItem)
+
+		uuidSize = len(uuid.New().String())
 	)
 
 	// we will do this in 2 passes. The first pass is to get the raw resources as they are
@@ -308,6 +311,26 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {
+			case item.Configuration.InterfaceType == lambdaInterfaceType && strings.HasPrefix(item.Configuration.Description, lambdaPrefix):
+				lambdaName := strings.TrimPrefix(item.Configuration.Description, lambdaPrefix)
+				// lambda also includes a UUID at the end, so we need to remove that
+				if len(lambdaName) > uuidSize {
+					// check if it finishes with a UUID
+					if _, err := uuid.Parse(lambdaName[len(lambdaName)-uuidSize:]); err == nil {
+						lambdaName = lambdaName[:len(lambdaName)-uuidSize]
+						// remove last -
+						if lambdaName[len(lambdaName)-1] == '-' {
+							lambdaName = lambdaName[:len(lambdaName)-1]
+						}
+					}
+				}
+				// now find the correct lambda
+				if lambdaMap, ok := itemToLocation[resourceTypeLambda]; ok {
+					if lambda, ok := lambdaMap[lambdaName]; ok {
+						located.parent = lambda
+					}
+				}
+
 			case item.Configuration.Association.IPOwnerID == awsELBOwner && strings.HasPrefix(item.Configuration.Description, elbPrefix):
 				// find the ELB that owns it, make it the parent
 				elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)

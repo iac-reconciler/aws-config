@@ -3,6 +3,7 @@ module github.com/iac-reconciler/aws-config
 go 1.20
 
 require (
+	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.7.0
 )
