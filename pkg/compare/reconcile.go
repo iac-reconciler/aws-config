@@ -257,6 +257,28 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				detail.parent = located
 			}
 		}
+
+		// ENIs that are owned by an ELB
+		if item.ResourceType == resourceTypeENI {
+			if item.Configuration.Association.IPOwnerID != awsELBOwner {
+				continue
+			}
+			// find the ELB that owns it, make it the parent
+			if !strings.HasPrefix(item.Configuration.Description, elbPrefix) {
+				continue
+			}
+			elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
+			// now find the correct ELB
+			var elbMap map[string]*LocatedItem
+			if elbMap, ok = itemToLocation[resourceTypeELB]; !ok {
+				continue
+			}
+			if elb, ok := elbMap[elbName]; !ok {
+				continue
+			} else {
+				located.parent = elb
+			}
+		}
 	}
 
 	// now comes the harder part. We have to go through each tfstate and reconcile it with the snapshot

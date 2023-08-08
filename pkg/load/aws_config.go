@@ -33,14 +33,19 @@ type ConfigurationItem struct {
 
 type Configuration struct {
 	Associations        []Association `json:"associations"`
+	Association         Association   `json:"association"`
 	NetworkInterfaceIDs []string      `json:"networkInterfaceIds"`
 	Instances           []EC2Instance `json:"instances,omitempty"`
+	Description         string        `json:"description"`
 }
 
 type Association struct {
-	AssociationID string `json:"routeTableAssociationId"`
-	RouteTableID  string `json:"routeTableId"`
-	SubnetID      string `json:"subnetId"`
+	AssociationID string `json:"routeTableAssociationId,omitempty"`
+	RouteTableID  string `json:"routeTableId,omitempty"`
+	SubnetID      string `json:"subnetId,omitempty"`
+	IPOwnerID     string `json:"ipOwnerId,omitempty"`
+	PublicDNSName string `json:"publicDnsName,omitempty"`
+	PublicIP      string `json:"publicIp,omitempty"`
 }
 
 type EC2Instance struct {

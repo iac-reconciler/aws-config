@@ -14,11 +14,14 @@ const (
 	resourceTypeEC2Instance           = "AWS::EC2::Instance"
 	resourceTypeEksCluster            = "AWS::EKS::Cluster"
 	resourceTypeASG                   = "AWS::AutoScaling::AutoScalingGroup"
+	resourceTypeELB                   = "AWS::ElasticLoadBalancing::LoadBalancer"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
 	terraformIAMPolicyType            = "aws_iam_policy"
 	eksClusterOwnerTagNamePrefix      = "kubernetes.io/cluster/"
 	owned                             = "owned"
+	awsELBOwner                       = "amazon-elb"
+	elbPrefix                         = "ELB "
 
 	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
 	terraformAWSProvider         = "provider.aws"
