@@ -24,9 +24,15 @@ func (l LocatedItem) Source(src string) bool {
 		return l.config
 	case "terraform":
 		return l.terraform
+	case "owned":
+		return l.Owned()
 	default:
 		return false
 	}
+}
+
+func (l LocatedItem) Owned() bool {
+	return l.terraform || l.parent != nil
 }
 
 // Reconcile reconcile the snapshot and tfstates.

@@ -21,6 +21,7 @@ func detail() *cobra.Command {
 		sortByCountTotal      = "count-total"
 		sortByCountBoth       = "count-both"
 		sortByCountSingleOnly = "count-single"
+		sortByCountOwned      = "count-owned"
 		sortByDefault         = sortByResourceName
 	)
 	var sortOptions = []string{
@@ -28,6 +29,7 @@ func detail() *cobra.Command {
 		sortByCountTotal,
 		sortByCountBoth,
 		sortByCountSingleOnly,
+		sortByCountOwned,
 	}
 
 	cmd := &cobra.Command{
@@ -74,16 +76,17 @@ func detail() *cobra.Command {
 			case top < 0:
 				results = results[len(results)+top:]
 			}
-			fmt.Printf("ResourceType ResourceName ResourceID ARN %s\n", strings.Join(compare.SourceKeys, " "))
+			fmt.Printf("ResourceType ResourceName ResourceID ARN owned %s\n", strings.Join(compare.SourceKeys, " "))
 			for _, item := range results {
 				if item.ResourceType != detail {
 					continue
 				}
-				fmt.Printf("%s %s %s %s",
+				fmt.Printf("%s %s %s %s %v",
 					item.ResourceType,
 					item.ResourceName,
 					item.ResourceID,
 					item.ARN,
+					item.Owned(),
 				)
 				for _, key := range compare.SourceKeys {
 					fmt.Printf(" %v", item.Source(key))
