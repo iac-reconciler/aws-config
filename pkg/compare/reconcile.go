@@ -308,6 +308,28 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		// cloudwatch alarms
+		if item.ResourceType == resourceTypeAlarm {
+			switch item.Configuration.Namespace {
+			case cloudWatchNamespaceELB:
+				// find the ELB
+				var lbID string
+				for _, dim := range item.Configuration.Dimensions {
+					if dim.Name != dimensionLoadBalancerName {
+						continue
+					}
+					lbID = dim.Value
+					break
+				}
+				if elbMap, ok := itemToLocation[resourceTypeELB]; ok {
+					if elb, ok := elbMap[lbID]; ok {
+						located.parent = elb
+					}
+
+				}
+			}
+		}
+
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {

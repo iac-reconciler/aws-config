@@ -18,6 +18,7 @@ const (
 	resourceTypeELBV2                 = "AWS::ElasticLoadBalancingV2::LoadBalancer"
 	resourceTypeRDSInstance           = "AWS::RDS::DBInstance"
 	resourceTypeLambda                = "AWS::Lambda::Function"
+	resourceTypeAlarm                 = "AWS::CloudWatch::Alarm"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
 	terraformIAMPolicyType            = "aws_iam_policy"
@@ -28,9 +29,11 @@ const (
 	lambdaInterfaceType               = "lambda"
 	lambdaPrefix                      = "AWS Lambda VPC ENI-"
 	elbPrefix                         = "ELB "
+	cloudWatchNamespaceELB            = "AWS/ELB"
 	k8sInstanceTag                    = "node.k8s.amazonaws.com/instance_id"
 	rdsENI                            = "RDSNetworkInterface"
 	elbArnPrefix                      = "arn:aws:elasticloadbalancing"
+	dimensionLoadBalancerName         = "LoadBalancerName"
 
 	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
 	terraformAWSProvider         = "provider.aws"

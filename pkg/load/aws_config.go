@@ -39,6 +39,8 @@ type Configuration struct {
 	Description         string        `json:"description"`
 	InterfaceType       string        `json:"interfaceType,omitempty"`
 	Attachment          Attachment    `json:"attachment,omitempty"`
+	Namespace           string        `json:"namespace,omitempty"`
+	Dimensions          []Dimension   `json:"dimensions,omitempty"`
 }
 
 type Association struct {
@@ -59,4 +61,9 @@ type EC2Instance struct {
 type Attachment struct {
 	AttachmentID    string `json:"attachmentId"`
 	InstanceOwnerID string `json:"instanceOwnerId"`
+}
+
+type Dimension struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
