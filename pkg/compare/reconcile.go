@@ -522,6 +522,38 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							log.Warnf("unknown security group rule type %s for resource %d, instance %d in file %s", ruleType, i, j, statefile)
 						}
 					}
+				case terraformTypeRoute, resourceTypeRoute:
+					// check if the route table exists
+					var (
+						routeTable string
+					)
+					routeTablePtr := instance.Attributes["route_table_id"]
+					if routeTablePtr != nil {
+						routeTable = routeTablePtr.(string)
+					}
+
+					// find the route table in Config based on the ID
+					if resourceTypeRouteTable != "" {
+						// if we could not find the route table, then nothing to look for in Config; it only is in terraform
+						if item, ok = itemToLocation[resourceTypeRouteTable][routeTable]; !ok {
+							if item, ok = nameToLocation[resourceTypeRouteTable][routeTable]; !ok {
+								item = nil
+							}
+						}
+					}
+					// we found the parent route table, look through the routes and find the one that matches
+					if item != nil {
+						for _, route := range item.Configuration.Routes {
+							if route.DestinationCIDRBlock == instance.Attributes["destination_cidr_block"] &&
+								route.Origin == instance.Attributes["origin"] &&
+								route.VPCPeeringConnectionID == instance.Attributes["vpc_peering_connection_id"] &&
+								route.GatewayID == instance.Attributes["gateway_id"] &&
+								route.NATGatewayID == instance.Attributes["nat_gateway_id"] {
+								parentFound = true
+								break
+							}
+						}
+					}
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {

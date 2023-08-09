@@ -43,6 +43,7 @@ type Configuration struct {
 	Dimensions          []Dimension    `json:"dimensions,omitempty"`
 	IPPermissions       []IPPermission `json:"ipPermissions,omitempty"`
 	IPPermissionsEgress []IPPermission `json:"ipPermissionsEgress,omitempty"`
+	Routes              []Route        `json:"routes,omitempty"`
 }
 
 type Association struct {
@@ -89,4 +90,13 @@ type UserIDGroupPair struct {
 	UserID               string `json:"userId"`
 	VPCID                string `json:"vpcId"`
 	VPCPeeringConnection string `json:"vpcPeeringConnection"`
+}
+
+type Route struct {
+	DestinationCIDRBlock   string `json:"destinationCidrBlock,omitempty"`
+	Origin                 string `json:"origin,omitempty"`
+	State                  string `json:"state,omitempty"`
+	VPCPeeringConnectionID string `json:"vpcPeeringConnectionId,omitempty"`
+	GatewayID              string `json:"gatewayId,omitempty"`
+	NATGatewayID           string `json:"natGatewayId,omitempty"`
 }

@@ -7,6 +7,7 @@ const (
 	resourceTypeStack                 = "AWS::CloudFormation::Stack"
 	resourceTypeElasticBeanstalk      = "AWS::ElasticBeanstalk::Application"
 	resourceTypeRouteTable            = "AWS::EC2::RouteTable"
+	resourceTypeRoute                 = "AWS::EC2::Route"
 	resourceTypeRouteTableAssociation = "AWS::EC2::SubnetRouteTableAssociation"
 	resourceTypeVPCEndpoint           = "AWS::EC2::VPCEndpoint"
 	resourceTypeENI                   = "AWS::EC2::NetworkInterface"
@@ -42,4 +43,5 @@ const (
 	terraformAWSProvider           = "provider.aws"
 	terraformAWSProviderSuffix     = "provider.aws"
 	terraformTypeSecurityGroupRule = "aws_security_group_rule"
+	terraformTypeRoute             = "aws_route"
 )
