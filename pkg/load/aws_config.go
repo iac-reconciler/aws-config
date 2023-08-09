@@ -32,15 +32,17 @@ type ConfigurationItem struct {
 }
 
 type Configuration struct {
-	Associations        []Association `json:"associations"`
-	Association         Association   `json:"association"`
-	NetworkInterfaceIDs []string      `json:"networkInterfaceIds"`
-	Instances           []EC2Instance `json:"instances,omitempty"`
-	Description         string        `json:"description"`
-	InterfaceType       string        `json:"interfaceType,omitempty"`
-	Attachment          Attachment    `json:"attachment,omitempty"`
-	Namespace           string        `json:"namespace,omitempty"`
-	Dimensions          []Dimension   `json:"dimensions,omitempty"`
+	Associations        []Association  `json:"associations"`
+	Association         Association    `json:"association"`
+	NetworkInterfaceIDs []string       `json:"networkInterfaceIds"`
+	Instances           []EC2Instance  `json:"instances,omitempty"`
+	Description         string         `json:"description"`
+	InterfaceType       string         `json:"interfaceType,omitempty"`
+	Attachment          Attachment     `json:"attachment,omitempty"`
+	Namespace           string         `json:"namespace,omitempty"`
+	Dimensions          []Dimension    `json:"dimensions,omitempty"`
+	IPPermissions       []IPPermission `json:"ipPermissions,omitempty"`
+	IPPermissionsEgress []IPPermission `json:"ipPermissionsEgress,omitempty"`
 }
 
 type Association struct {
@@ -66,4 +68,25 @@ type Attachment struct {
 type Dimension struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type IPPermission struct {
+	FromPort         int64             `json:"fromPort"`
+	ToPort           int64             `json:"toPort"`
+	IPProtocol       string            `json:"ipProtocol"`
+	IPRanges         []string          `json:"ipRanges"`
+	IPV4Ranges       []IPV4Range       `json:"ipv4Ranges"`
+	UserIDGroupPairs []UserIDGroupPair `json:"userIdGroupPairs"`
+}
+
+type IPV4Range struct {
+	CIDRIP string `json:"cidrIp"`
+}
+
+type UserIDGroupPair struct {
+	Description          string `json:"description"`
+	GroupID              string `json:"groupId"` // this is the source security group
+	UserID               string `json:"userId"`
+	VPCID                string `json:"vpcId"`
+	VPCPeeringConnection string `json:"vpcPeeringConnection"`
 }

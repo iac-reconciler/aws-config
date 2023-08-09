@@ -413,6 +413,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				var (
 					resourceId, arn, name string
 					item                  *LocatedItem
+					parentFound           bool
 					key                   string
 				)
 				// try by arn first - some, however, prioritize others. We need the one that matches the resourceId
@@ -439,24 +440,107 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					continue
 				}
 
-				item, ok = itemToLocation[configType][key]
-				if !ok {
-					item, ok = nameToLocation[configType][name]
-					if !ok {
-						// if we could not find it by ARN or by configType+id or configType+name, then
-						// it is only in terraform
-						item = &LocatedItem{
-							ConfigurationItem: &load.ConfigurationItem{
-								ResourceType: configType,
-								ResourceID:   resourceId,
-								ARN:          arn,
-							},
-							mappedType: mappedType,
+				// some types have special rules
+				switch configType {
+				case terraformTypeSecurityGroupRule:
+					// check if the security group exists
+					var (
+						securityGroupID string
+					)
+					securityGroupIDPtr := instance.Attributes["security_group_id"]
+					if securityGroupIDPtr != nil {
+						securityGroupID = securityGroupIDPtr.(string)
+					}
+
+					// find the security group in Config based on the ID
+					if securityGroupID != "" {
+						// if we could not find the security group, then nothing to look for in Config; it only is in terraform
+						if item, ok = itemToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
+							if item, ok = nameToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
+								item = nil
+							}
 						}
-						itemToLocation[configType][key] = item
+					}
+					// we found the parent security group, look through the rules and find the one that matches
+					if item != nil {
+						typePtr := instance.Attributes["type"]
+						var (
+							ruleType string
+						)
+						if typePtr != nil {
+							ruleType = typePtr.(string)
+						}
+						switch ruleType {
+						case ingress:
+							// find the rule in the security group
+							for _, rule := range item.Configuration.IPPermissions {
+								if rule.FromPort != instance.Attributes["from_port"] ||
+									rule.ToPort != instance.Attributes["to_port"] ||
+									rule.IPProtocol != instance.Attributes["protocol"] {
+									continue
+								}
+								for _, pair := range rule.UserIDGroupPairs {
+									if pair.GroupID != instance.Attributes["source_security_group_id"] ||
+										pair.Description != instance.Attributes["description"] {
+										continue
+									}
+									// we have a match
+									parentFound = true
+									break
+								}
+								if parentFound {
+									break
+								}
+							}
+						case egress:
+							// find the rule in the security group
+							for _, rule := range item.Configuration.IPPermissionsEgress {
+								if rule.FromPort != instance.Attributes["from_port"] ||
+									rule.ToPort != instance.Attributes["to_port"] ||
+									rule.IPProtocol != instance.Attributes["protocol"] {
+									continue
+								}
+								for _, pair := range rule.UserIDGroupPairs {
+									if pair.GroupID != instance.Attributes["source_security_group_id"] ||
+										pair.Description != instance.Attributes["description"] {
+										continue
+									}
+									// we have a match
+									parentFound = true
+									break
+								}
+								if parentFound {
+									break
+								}
+							}
+
+						default:
+							// unknown rule type, so just skip it
+							log.Warnf("unknown security group rule type %s for resource %d, instance %d in file %s", ruleType, i, j, statefile)
+						}
+					}
+				default:
+					if item, ok = itemToLocation[configType][key]; !ok {
+						if item, ok = nameToLocation[configType][name]; !ok {
+							item = nil
+						}
 					}
 				}
-
+				// if we could not find the security group, then nothing to look for in Config; it only is in terraform
+				// It is found if we found the item, or if we found a parent.
+				if item == nil && !parentFound {
+					// if we could not find it by ARN or by configType+id or configType+name, then
+					// it is only in terraform
+					item = &LocatedItem{
+						ConfigurationItem: &load.ConfigurationItem{
+							ResourceType: configType,
+							ResourceID:   resourceId,
+							ARN:          arn,
+						},
+						mappedType: mappedType,
+					}
+					itemToLocation[configType][key] = item
+				}
 				item.terraform = true
 			}
 		}

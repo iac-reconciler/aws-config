@@ -12,6 +12,7 @@ const (
 	resourceTypeENI                   = "AWS::EC2::NetworkInterface"
 	resourceTypeEBSVolume             = "AWS::EC2::Volume"
 	resourceTypeEC2Instance           = "AWS::EC2::Instance"
+	resourceTypeSecurityGroup         = "AWS::EC2::SecurityGroup"
 	resourceTypeEksCluster            = "AWS::EKS::Cluster"
 	resourceTypeASG                   = "AWS::AutoScaling::AutoScalingGroup"
 	resourceTypeELB                   = "AWS::ElasticLoadBalancing::LoadBalancer"
@@ -34,8 +35,11 @@ const (
 	rdsENI                            = "RDSNetworkInterface"
 	elbArnPrefix                      = "arn:aws:elasticloadbalancing"
 	dimensionLoadBalancerName         = "LoadBalancerName"
+	ingress                           = "ingress"
+	egress                            = "egress"
 
-	terraformAWSRegistryProvider = `provider["registry.terraform.io/hashicorp/aws"]"`
-	terraformAWSProvider         = "provider.aws"
-	terraformAWSProviderSuffix   = "provider.aws"
+	terraformAWSRegistryProvider   = `provider["registry.terraform.io/hashicorp/aws"]"`
+	terraformAWSProvider           = "provider.aws"
+	terraformAWSProviderSuffix     = "provider.aws"
+	terraformTypeSecurityGroupRule = "aws_security_group_rule"
 )
