@@ -353,27 +353,30 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					}
 				}
 
-			case item.Configuration.Association.IPOwnerID == awsELBOwner && strings.HasPrefix(item.Configuration.Description, elbPrefix):
+			case strings.HasPrefix(item.Configuration.Description, elbPrefix) &&
+				(item.Configuration.Association.IPOwnerID == awsELBOwner ||
+					item.Configuration.Attachment.InstanceOwnerID == awsELBOwner ||
+					item.Configuration.InterfaceType == nlb):
 				// find the ELB that owns it, make it the parent
+				region := item.Region
+				account := item.AccountID
 				elbName := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
-				// now find the correct ELB
+				// could be ELB or ELBv2; nothing in it indicates that it is, except perhaps the start of the name,
+				// so we might as well just check both
+				var found bool
 				if elbMap, ok := itemToLocation[resourceTypeELB]; ok {
 					if elb, ok := elbMap[elbName]; ok {
 						located.parent = elb
+						found = true
 					}
 				}
-
-			case strings.HasPrefix(item.Configuration.Description, elbPrefix) &&
-				(item.Configuration.InterfaceType == nlb || item.Configuration.Attachment.InstanceOwnerID == awsELBOwner):
-				// NLB owner
-				region := item.Region
-				account := item.AccountID
-				nlbID := strings.TrimPrefix(item.Configuration.Description, elbPrefix)
-				if region != "" && account != "" {
-					nlbArn := fmt.Sprintf("%s:%s:%s:loadbalancer/%s", elbArnPrefix, region, account, nlbID)
-					if elbMap, ok := itemToLocation[resourceTypeELBV2]; ok {
-						if elb, ok := elbMap[nlbArn]; ok {
-							located.parent = elb
+				if !found {
+					if region != "" && account != "" {
+						nlbArn := fmt.Sprintf("%s:%s:%s:loadbalancer/%s", elbArnPrefix, region, account, elbName)
+						if elbMap, ok := itemToLocation[resourceTypeELBV2]; ok {
+							if elb, ok := elbMap[nlbArn]; ok {
+								located.parent = elb
+							}
 						}
 					}
 				}
