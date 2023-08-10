@@ -18,17 +18,18 @@ type Relationship struct {
 }
 
 type ConfigurationItem struct {
-	ResourceType  string            `json:"resourceType"`
-	ResourceID    string            `json:"resourceId"`
-	ResourceName  string            `json:"resourceName"`
-	ARN           string            `json:"ARN"`
-	Region        string            `json:"awsRegion"` // should be limited to certain regions
-	Zone          string            `json:"availabilityZone"`
-	AccountID     string            `json:"awsAccountId"`            // should be limited to numeric
-	Status        string            `json:"configurationItemStatus"` // should be limited to the limited sets of status
-	Relationships []Relationship    `json:"relationships"`
-	Configuration Configuration     `json:"configuration"`
-	Tags          map[string]string `json:"tags"`
+	ResourceType               string                     `json:"resourceType"`
+	ResourceID                 string                     `json:"resourceId"`
+	ResourceName               string                     `json:"resourceName"`
+	ARN                        string                     `json:"ARN"`
+	Region                     string                     `json:"awsRegion"` // should be limited to certain regions
+	Zone                       string                     `json:"availabilityZone"`
+	AccountID                  string                     `json:"awsAccountId"`            // should be limited to numeric
+	Status                     string                     `json:"configurationItemStatus"` // should be limited to the limited sets of status
+	Relationships              []Relationship             `json:"relationships"`
+	Configuration              Configuration              `json:"configuration"`
+	SupplementaryConfiguration SupplementaryConfiguration `json:"supplementaryConfiguration"`
+	Tags                       map[string]string          `json:"tags"`
 }
 
 type Configuration struct {
@@ -45,7 +46,10 @@ type Configuration struct {
 	IPPermissionsEgress   []IPPermission         `json:"ipPermissionsEgress,omitempty"`
 	Routes                []Route                `json:"routes,omitempty"`
 	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
-	UnsupportedResources  []ResourcePair         `json:"unsupportedResources,omitempty"`
+}
+
+type SupplementaryConfiguration struct {
+	UnsupportedResources []ResourcePair `json:"unsupportedResources,omitempty"`
 }
 
 type Association struct {

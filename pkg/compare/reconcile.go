@@ -182,7 +182,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				detail.parent = located
 			}
 
-			for _, resource := range item.Configuration.UnsupportedResources {
+			for _, resource := range item.SupplementaryConfiguration.UnsupportedResources {
 				if resource.ResourceType == "" {
 					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
 					continue
