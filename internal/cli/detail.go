@@ -78,7 +78,7 @@ func detail() *cobra.Command {
 			}
 			fmt.Printf("ResourceType ResourceName ResourceID ARN owned %s\n", strings.Join(compare.SourceKeys, " "))
 			for _, item := range results {
-				if item.ResourceType != detail {
+				if item.ResourceType != detail || item.Ephemeral() {
 					continue
 				}
 				var line strings.Builder

@@ -37,6 +37,10 @@ func (l LocatedItem) Owned() bool {
 	return l.terraform || l.parent != nil
 }
 
+func (l LocatedItem) Ephemeral() bool {
+	return !l.terraform && !l.config
+}
+
 // Reconcile reconcile the snapshot and tfstates.
 func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) (items []*LocatedItem, err error) {
 	// the keys are resource types, using the AWS-Config keys;
