@@ -46,6 +46,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 	var (
 		itemToLocation = make(map[string]map[string]*LocatedItem)
 		nameToLocation = make(map[string]map[string]*LocatedItem)
+		arnToLocation  = make(map[string]map[string]*LocatedItem)
 
 		uuidSize = len(uuid.New().String())
 	)
@@ -72,6 +73,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		if _, ok := nameToLocation[item.ResourceType]; !ok {
 			nameToLocation[item.ResourceType] = make(map[string]*LocatedItem)
 		}
+		if _, ok := arnToLocation[item.ResourceType]; !ok {
+			arnToLocation[item.ResourceType] = make(map[string]*LocatedItem)
+		}
 		key := item.ResourceID
 		if key == "" {
 			key = item.ARN
@@ -86,6 +90,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				mappedType:        mappedType,
 			}
 			itemToLocation[item.ResourceType][key] = detail
+		}
+		if item.ARN != "" {
+			arnToLocation[item.ResourceType][item.ARN] = detail
 		}
 		// we also map by name, if it exists, knowing it is a duplicate;
 		// this is needed because the cloudformation and elasticbeanstalk stacks
@@ -554,6 +561,43 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							}
 						}
 					}
+				case terraformTypeRolePolicyAttachment:
+					// check if the role exists
+					var (
+						roleID       string
+						policyID     string
+						role, policy *LocatedItem
+					)
+					rolePtr := instance.Attributes["role"]
+					if rolePtr != nil {
+						roleID = rolePtr.(string)
+					}
+					policyPtr := instance.Attributes["policy_arn"]
+					if policyPtr != nil {
+						policyID = policyPtr.(string)
+					}
+					if roleID != "" {
+						if role, ok = itemToLocation[resourceTypeIAMRole][roleID]; !ok {
+							if role, ok = nameToLocation[resourceTypeIAMRole][roleID]; !ok {
+								role = nil
+							}
+						}
+					}
+					if policyID != "" {
+						if policy, ok = arnToLocation[resourceTypeIAMPolicy][policyID]; !ok {
+							policy = nil
+						}
+					}
+					if role != nil && policy != nil {
+						for _, rel := range policy.Relationships {
+							if rel.ResourceType == resourceTypeIAMRole &&
+								rel.Name == nameRoleAttached &&
+								(rel.ResourceID == roleID || rel.ResourceID == role.ConfigurationItem.ResourceID) {
+								parentFound = true
+								break
+							}
+						}
+					}
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {
@@ -576,7 +620,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					}
 					itemToLocation[configType][key] = item
 				}
-				item.terraform = true
+				if item != nil {
+					item.terraform = true
+				}
 			}
 		}
 	}

@@ -21,12 +21,15 @@ const (
 	resourceTypeRDSInstance           = "AWS::RDS::DBInstance"
 	resourceTypeLambda                = "AWS::Lambda::Function"
 	resourceTypeAlarm                 = "AWS::CloudWatch::Alarm"
+	resourceTypeIAMRole               = "AWS::IAM::Role"
+	resourceTypeIAMPolicy             = "AWS::IAM::Policy"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
 	terraformIAMPolicyType            = "aws_iam_policy"
 	nlb                               = "network_load_balancer"
 	eksClusterOwnerTagNamePrefix      = "kubernetes.io/cluster/"
 	owned                             = "owned"
+	nameRoleAttached                  = "Is attached to Role"
 	awsELBOwner                       = "amazon-elb"
 	lambdaInterfaceType               = "lambda"
 	lambdaPrefix                      = "AWS Lambda VPC ENI-"
@@ -39,9 +42,10 @@ const (
 	ingress                           = "ingress"
 	egress                            = "egress"
 
-	terraformAWSRegistryProvider   = `provider["registry.terraform.io/hashicorp/aws"]"`
-	terraformAWSProvider           = "provider.aws"
-	terraformAWSProviderSuffix     = "provider.aws"
-	terraformTypeSecurityGroupRule = "aws_security_group_rule"
-	terraformTypeRoute             = "aws_route"
+	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]"`
+	terraformAWSProvider              = "provider.aws"
+	terraformAWSProviderSuffix        = "provider.aws"
+	terraformTypeSecurityGroupRule    = "aws_security_group_rule"
+	terraformTypeRoute                = "aws_route"
+	terraformTypeRolePolicyAttachment = "aws_iam_role_policy_attachment"
 )
