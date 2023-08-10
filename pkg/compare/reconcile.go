@@ -243,6 +243,38 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				}
 				detail.parent = located
 			}
+
+			for _, resource := range item.Configuration.UnsupportedResources {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+					continue
+				}
+				if resource.ResourceID == "" {
+					log.Warnf("AWS Config snapshot: empty resource ID for item %s", resource.ResourceType)
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				key := resource.ResourceID
+				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
+					// try by name
+					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
+						detail = &LocatedItem{
+							ConfigurationItem: &load.ConfigurationItem{
+								ResourceType: resource.ResourceType,
+								ResourceID:   resource.ResourceID,
+							},
+						}
+						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
+					}
+				}
+				detail.parent = located
+			}
 		}
 
 		// VPC-Endpoint-owned ENIs

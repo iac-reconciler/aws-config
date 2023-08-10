@@ -45,6 +45,7 @@ type Configuration struct {
 	IPPermissionsEgress   []IPPermission         `json:"ipPermissionsEgress,omitempty"`
 	Routes                []Route                `json:"routes,omitempty"`
 	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
+	UnsupportedResources  []ResourcePair         `json:"unsupportedResources,omitempty"`
 }
 
 type Association struct {
@@ -109,4 +110,9 @@ type LaunchTemplateConfig struct {
 type LaunchTemplateSpecification struct {
 	LaunchTemplateID string `json:"LaunchTemplateId,omitempty"`
 	Version          string `json:"Version,omitempty"`
+}
+
+type ResourcePair struct {
+	ResourceType string `json:"resourceType"`
+	ResourceID   string `json:"resourceId"`
 }
