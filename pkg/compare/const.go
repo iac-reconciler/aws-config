@@ -54,7 +54,6 @@ const (
 
 	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]"`
 	terraformAWSProvider              = "provider.aws"
-	terraformAWSProviderSuffix        = "provider.aws"
 	terraformTypeSecurityGroupRule    = "aws_security_group_rule"
 	terraformTypeRoute                = "aws_route"
 	terraformTypeRolePolicyAttachment = "aws_iam_role_policy_attachment"

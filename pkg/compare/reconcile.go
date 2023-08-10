@@ -516,7 +516,8 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			// only care about aws resources
 			if resource.Provider != terraformAWSProvider &&
 				resource.Provider != terraformAWSRegistryProvider &&
-				!strings.HasSuffix(resource.Provider, terraformAWSProviderSuffix) {
+				!strings.HasSuffix(resource.Provider, terraformAWSProvider) &&
+				!strings.HasSuffix(resource.Provider, terraformAWSRegistryProvider) {
 				continue
 			}
 			// look up the resource type
