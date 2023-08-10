@@ -48,6 +48,7 @@ type Configuration struct {
 	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
 	Entries               []Entry                `json:"entries,omitempty"`
 	Path                  string                 `json:"path,omitempty"`
+	TargetGroupARNs       []string               `json:"targetGroupARNs,omitempty"`
 }
 
 type SupplementaryConfiguration struct {

@@ -744,24 +744,25 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				case terraformTypeNetworkACLRule, resourceTypeNetworkACLRule:
 					// check if the NACL exists
 					var (
-						nacl string
+						naclID string
+						nacl   *LocatedItem
 					)
 					naclPtr := instance.Attributes["network_acl_id"]
 					if naclPtr != nil {
-						nacl = naclPtr.(string)
+						naclID = naclPtr.(string)
 					}
 
 					// find the route table in Config based on the ID
-					if nacl != "" {
-						if item, ok = itemToLocation[resourceTypeNetworkACL][nacl]; !ok {
-							if item, ok = nameToLocation[resourceTypeNetworkACL][nacl]; !ok {
-								item = nil
+					if naclID != "" {
+						if nacl, ok = itemToLocation[resourceTypeNetworkACL][naclID]; !ok {
+							if nacl, ok = nameToLocation[resourceTypeNetworkACL][naclID]; !ok {
+								nacl = nil
 							}
 						}
 					}
-					// we found the parent NACL table, look through the routes and find the one that matches
-					if item != nil {
-						for _, entry := range item.Configuration.Entries {
+					// we found the parent NACL table, look through the rules and find the one that matches
+					if nacl != nil {
+						for _, entry := range nacl.Configuration.Entries {
 							if entry.CidrBlock == instance.Attributes["cidr_block"] &&
 								entry.Egress == instance.Attributes["egress"] &&
 								entry.Protocol == instance.Attributes["protocol"] &&
@@ -772,7 +773,35 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							}
 						}
 					}
+				case terraformTypeASGAttachment:
+					// check if the ASG exists
+					var (
+						asgID string
+						asg   *LocatedItem
+					)
 
+					asgPtr := instance.Attributes["autoscaling_group_name"]
+					if asgPtr != nil {
+						asgID = asgPtr.(string)
+					}
+
+					// find the target group in the ASG
+					if asgID != "" {
+						if asg, ok = itemToLocation[resourceTypeASG][asgID]; !ok {
+							if asg, ok = nameToLocation[resourceTypeASG][asgID]; !ok {
+								asg = nil
+							}
+						}
+					}
+					// we found the parent ASG, look through the attachments and find the one that matches
+					if asg != nil {
+						for _, tg := range asg.Configuration.TargetGroupARNs {
+							if tg == instance.Attributes["alb_target_group_arn"] {
+								parentFound = true
+								break
+							}
+						}
+					}
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {

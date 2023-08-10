@@ -62,4 +62,5 @@ const (
 	terraformTypeRoute                = "aws_route"
 	terraformTypeRolePolicyAttachment = "aws_iam_role_policy_attachment"
 	terraformTypeNetworkACLRule       = "aws_network_acl_rule"
+	terraformTypeASGAttachment        = "aws_autoscaling_attachment"
 )
