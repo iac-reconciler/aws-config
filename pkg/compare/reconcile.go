@@ -422,6 +422,15 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						}
 					}
 				}
+			case item.Configuration.InterfaceType == natGatewayInterfaceType && strings.HasPrefix(item.Configuration.Description, natGatewayPrefix):
+				itemName := strings.TrimPrefix(item.Configuration.Description, natGatewayPrefix)
+				// now find the correct lambda
+				if itemMap, ok := itemToLocation[resourceTypeNATGateway]; ok {
+					if item, ok := itemMap[itemName]; ok {
+						located.parent = item
+					}
+				}
+
 			}
 		}
 	}
