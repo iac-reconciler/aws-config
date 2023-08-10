@@ -52,7 +52,7 @@ const (
 	ingress                              = "ingress"
 	egress                               = "egress"
 
-	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]"`
+	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]`
 	terraformAWSProvider              = "provider.aws"
 	terraformTypeSecurityGroupRule    = "aws_security_group_rule"
 	terraformTypeRoute                = "aws_route"
