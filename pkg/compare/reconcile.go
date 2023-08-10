@@ -714,7 +714,9 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {
-							item = nil
+							if item, ok = arnToLocation[configType][arn]; !ok {
+								item = nil
+							}
 						}
 					}
 				}
