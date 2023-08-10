@@ -26,4 +26,5 @@ type Instance struct {
 	SchemaVersion int
 	Attributes    map[string]interface{}
 	Private       string
+	IndexKey      string
 }
