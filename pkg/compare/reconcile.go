@@ -492,6 +492,14 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						located.parent = item
 					}
 				}
+			case item.Configuration.InterfaceType == transitGatewayInterfaceType && strings.HasPrefix(item.Configuration.Description, transitGatewayPrefix):
+				itemName := strings.TrimPrefix(item.Configuration.Description, transitGatewayPrefix)
+				// now find the correct ElastiCache Cluster
+				if itemMap, ok := itemToLocation[resourceTypeTransitGatewayAttachment]; ok {
+					if item, ok := itemMap[itemName]; ok {
+						located.parent = item
+					}
+				}
 			}
 		}
 	}
