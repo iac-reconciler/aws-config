@@ -69,6 +69,10 @@ func Summarize(items []*LocatedItem) (results *Summary, err error) {
 		if item.ConfigurationItem == nil {
 			continue
 		}
+		// items that are neither in terraform nor config can be ignored; they are just ephemerally created
+		if !item.config && !item.terraform {
+			continue
+		}
 		// ensure we have a TypeSummary for this type
 		if _, ok := byType[item.ResourceType]; !ok {
 			byType[item.ResourceType] = &TypeSummary{

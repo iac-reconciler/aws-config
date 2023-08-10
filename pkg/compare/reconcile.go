@@ -232,8 +232,13 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
 					// try by name
 					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
-						log.Warnf("found unknown resource: %s %s", resource.ResourceType, key)
-						continue
+						detail = &LocatedItem{
+							ConfigurationItem: &load.ConfigurationItem{
+								ResourceType: resource.ResourceType,
+								ResourceID:   resource.ResourceID,
+							},
+						}
+						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
 					}
 				}
 				detail.parent = located
@@ -424,13 +429,20 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				}
 			case item.Configuration.InterfaceType == natGatewayInterfaceType && strings.HasPrefix(item.Configuration.Description, natGatewayPrefix):
 				itemName := strings.TrimPrefix(item.Configuration.Description, natGatewayPrefix)
-				// now find the correct lambda
+				// now find the correct NAT Gateway
 				if itemMap, ok := itemToLocation[resourceTypeNATGateway]; ok {
 					if item, ok := itemMap[itemName]; ok {
 						located.parent = item
 					}
 				}
-
+			case strings.HasPrefix(item.Configuration.Description, elastiCachePrefix):
+				itemName := strings.TrimPrefix(item.Configuration.Description, elastiCachePrefix)
+				// now find the correct ElastiCache Cluster
+				if itemMap, ok := itemToLocation[resourceTypeElastiCacheCluster]; ok {
+					if item, ok := itemMap[itemName]; ok {
+						located.parent = item
+					}
+				}
 			}
 		}
 	}
