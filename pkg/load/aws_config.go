@@ -32,18 +32,19 @@ type ConfigurationItem struct {
 }
 
 type Configuration struct {
-	Associations        []Association  `json:"associations"`
-	Association         Association    `json:"association"`
-	NetworkInterfaceIDs []string       `json:"networkInterfaceIds"`
-	Instances           []EC2Instance  `json:"instances,omitempty"`
-	Description         string         `json:"description"`
-	InterfaceType       string         `json:"interfaceType,omitempty"`
-	Attachment          Attachment     `json:"attachment,omitempty"`
-	Namespace           string         `json:"namespace,omitempty"`
-	Dimensions          []Dimension    `json:"dimensions,omitempty"`
-	IPPermissions       []IPPermission `json:"ipPermissions,omitempty"`
-	IPPermissionsEgress []IPPermission `json:"ipPermissionsEgress,omitempty"`
-	Routes              []Route        `json:"routes,omitempty"`
+	Associations          []Association          `json:"associations"`
+	Association           Association            `json:"association"`
+	NetworkInterfaceIDs   []string               `json:"networkInterfaceIds"`
+	Instances             []EC2Instance          `json:"instances,omitempty"`
+	Description           string                 `json:"description"`
+	InterfaceType         string                 `json:"interfaceType,omitempty"`
+	Attachment            Attachment             `json:"attachment,omitempty"`
+	Namespace             string                 `json:"namespace,omitempty"`
+	Dimensions            []Dimension            `json:"dimensions,omitempty"`
+	IPPermissions         []IPPermission         `json:"ipPermissions,omitempty"`
+	IPPermissionsEgress   []IPPermission         `json:"ipPermissionsEgress,omitempty"`
+	Routes                []Route                `json:"routes,omitempty"`
+	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
 }
 
 type Association struct {
@@ -99,4 +100,13 @@ type Route struct {
 	VPCPeeringConnectionID string `json:"vpcPeeringConnectionId,omitempty"`
 	GatewayID              string `json:"gatewayId,omitempty"`
 	NATGatewayID           string `json:"natGatewayId,omitempty"`
+}
+
+type LaunchTemplateConfig struct {
+	LaunchTemplateSpecification LaunchTemplateSpecification `json:"LaunchTemplateSpecification,omitempty"`
+}
+
+type LaunchTemplateSpecification struct {
+	LaunchTemplateID string `json:"LaunchTemplateId,omitempty"`
+	Version          string `json:"Version,omitempty"`
 }

@@ -337,6 +337,19 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		// EC2Fleets can be owned by a LaunchTemplate
+		if item.ResourceType == resourceTypeEC2Fleet {
+			for _, ltConfig := range item.Configuration.LaunchTemplateConfigs {
+				if ltConfig.LaunchTemplateSpecification.LaunchTemplateID != "" {
+					if _, ok := itemToLocation[resourceTypeLaunchTemplate]; ok {
+						if lt, ok := itemToLocation[resourceTypeLaunchTemplate][ltConfig.LaunchTemplateSpecification.LaunchTemplateID]; ok {
+							located.parent = lt
+						}
+					}
+				}
+			}
+		}
+
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {

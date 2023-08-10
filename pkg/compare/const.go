@@ -23,6 +23,8 @@ const (
 	resourceTypeAlarm                 = "AWS::CloudWatch::Alarm"
 	resourceTypeIAMRole               = "AWS::IAM::Role"
 	resourceTypeIAMPolicy             = "AWS::IAM::Policy"
+	resourceTypeEC2Fleet              = "AWS::EC2::EC2Fleet"
+	resourceTypeLaunchTemplate        = "AWS::EC2::LaunchTemplate"
 	eksEniOwnerTagName                = "eks:eni:owner"
 	eksEniOwnerTagValue               = "eks-vpc-resource-controller"
 	terraformIAMPolicyType            = "aws_iam_policy"
