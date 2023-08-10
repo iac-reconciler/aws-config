@@ -128,7 +128,95 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 		}
 	}
 
-	// second pass just for resources that contain others
+	// second pass for CloudFormation-owned resources
+	for _, item := range snapshot.ConfigurationItems {
+		// get the correct LocatedItem pointer for this item
+		var (
+			located *LocatedItem
+			ok      bool
+		)
+		key := item.ResourceID
+		if key == "" {
+			key = item.ARN
+		}
+		if located, ok = itemToLocation[item.ResourceType][key]; !ok {
+			log.Warnf("found unknown resource: %s %s", item.ResourceType, key)
+			continue
+		}
+
+		// CloudFormation and Beanstalk created items
+		if item.ResourceType == resourceTypeStack || item.ResourceType == resourceTypeElasticBeanstalk {
+			// track subsidiary resources
+			for _, resource := range item.Relationships {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+					continue
+				}
+				// only care about those contained
+				if strings.TrimSpace(resource.Name) != resourceContains {
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				key := resource.ResourceID
+				if key == "" {
+					key = resource.ResourceName
+				}
+				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
+					// try by name
+					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
+						detail = &LocatedItem{
+							ConfigurationItem: &load.ConfigurationItem{
+								ResourceType: resource.ResourceType,
+								ResourceID:   resource.ResourceID,
+							},
+						}
+						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
+					}
+				}
+				detail.parent = located
+			}
+
+			for _, resource := range item.Configuration.UnsupportedResources {
+				if resource.ResourceType == "" {
+					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
+					continue
+				}
+				if resource.ResourceID == "" {
+					log.Warnf("AWS Config snapshot: empty resource ID for item %s", resource.ResourceType)
+					continue
+				}
+				if _, ok := itemToLocation[resource.ResourceType]; !ok {
+					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
+				}
+				var (
+					detail *LocatedItem
+					ok     bool
+				)
+				key := resource.ResourceID
+				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
+					// try by name
+					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
+						detail = &LocatedItem{
+							ConfigurationItem: &load.ConfigurationItem{
+								ResourceType: resource.ResourceType,
+								ResourceID:   resource.ResourceID,
+							},
+						}
+						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
+					}
+				}
+				detail.parent = located
+			}
+		}
+	}
+
+	// third pass just for resources that contain others
 	for _, item := range snapshot.ConfigurationItems {
 		// get the correct LocatedItem pointer for this item
 		var (
@@ -203,77 +291,6 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						}
 					}
 				}
-			}
-		}
-
-		// CloudFormation and Beanstalk created items
-		if item.ResourceType == resourceTypeStack || item.ResourceType == resourceTypeElasticBeanstalk {
-			// track subsidiary resources
-			for _, resource := range item.Relationships {
-				if resource.ResourceType == "" {
-					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
-					continue
-				}
-				// only care about those contained
-				if strings.TrimSpace(resource.Name) != resourceContains {
-					continue
-				}
-				if _, ok := itemToLocation[resource.ResourceType]; !ok {
-					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
-				}
-				var (
-					detail *LocatedItem
-					ok     bool
-				)
-				key := resource.ResourceID
-				if key == "" {
-					key = resource.ResourceName
-				}
-				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
-					// try by name
-					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
-						detail = &LocatedItem{
-							ConfigurationItem: &load.ConfigurationItem{
-								ResourceType: resource.ResourceType,
-								ResourceID:   resource.ResourceID,
-							},
-						}
-						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
-					}
-				}
-				detail.parent = located
-			}
-
-			for _, resource := range item.Configuration.UnsupportedResources {
-				if resource.ResourceType == "" {
-					log.Warnf("AWS Config snapshot: empty resource type for item %s", resource.ResourceID)
-					continue
-				}
-				if resource.ResourceID == "" {
-					log.Warnf("AWS Config snapshot: empty resource ID for item %s", resource.ResourceType)
-					continue
-				}
-				if _, ok := itemToLocation[resource.ResourceType]; !ok {
-					itemToLocation[resource.ResourceType] = make(map[string]*LocatedItem)
-				}
-				var (
-					detail *LocatedItem
-					ok     bool
-				)
-				key := resource.ResourceID
-				if detail, ok = itemToLocation[resource.ResourceType][key]; !ok {
-					// try by name
-					if detail, ok = nameToLocation[resource.ResourceType][key]; !ok {
-						detail = &LocatedItem{
-							ConfigurationItem: &load.ConfigurationItem{
-								ResourceType: resource.ResourceType,
-								ResourceID:   resource.ResourceID,
-							},
-						}
-						itemToLocation[resource.ResourceType][resource.ResourceID] = detail
-					}
-				}
-				detail.parent = located
 			}
 		}
 
