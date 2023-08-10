@@ -658,7 +658,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					}
 
 					// find the route table in Config based on the ID
-					if resourceTypeRouteTable != "" {
+					if routeTable != "" {
 						// if we could not find the route table, then nothing to look for in Config; it only is in terraform
 						if item, ok = itemToLocation[resourceTypeRouteTable][routeTable]; !ok {
 							if item, ok = nameToLocation[resourceTypeRouteTable][routeTable]; !ok {
@@ -716,6 +716,38 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							}
 						}
 					}
+				case terraformTypeNetworkACLRule, resourceTypeNetworkACLRule:
+					// check if the NACL exists
+					var (
+						nacl string
+					)
+					naclPtr := instance.Attributes["network_acl_id"]
+					if naclPtr != nil {
+						nacl = naclPtr.(string)
+					}
+
+					// find the route table in Config based on the ID
+					if nacl != "" {
+						if item, ok = itemToLocation[resourceTypeNetworkACL][nacl]; !ok {
+							if item, ok = nameToLocation[resourceTypeNetworkACL][nacl]; !ok {
+								item = nil
+							}
+						}
+					}
+					// we found the parent NACL table, look through the routes and find the one that matches
+					if item != nil {
+						for _, entry := range item.Configuration.Entries {
+							if entry.CidrBlock == instance.Attributes["cidr_block"] &&
+								entry.Egress == instance.Attributes["egress"] &&
+								entry.Protocol == instance.Attributes["protocol"] &&
+								entry.RuleAction == instance.Attributes["rule_action"] &&
+								entry.RuleNumber == instance.Attributes["rule_number"] {
+								parentFound = true
+								break
+							}
+						}
+					}
+
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {

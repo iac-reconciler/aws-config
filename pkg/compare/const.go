@@ -28,6 +28,8 @@ const (
 	resourceTypeNATGateway               = "AWS::EC2::NatGateway"
 	resourceTypeElastiCacheCluster       = "AWS::ElastiCache::CacheCluster"
 	resourceTypeTransitGatewayAttachment = "AWS::EC2::TransitGatewayAttachment"
+	resourceTypeNetworkACL               = "AWS::EC2::NetworkAcl"
+	resourceTypeNetworkACLRule           = "AWS::EC2::NetworkAclEntry"
 	eksEniOwnerTagName                   = "eks:eni:owner"
 	eksEniOwnerTagValue                  = "eks-vpc-resource-controller"
 	terraformIAMPolicyType               = "aws_iam_policy"
@@ -57,4 +59,5 @@ const (
 	terraformTypeSecurityGroupRule    = "aws_security_group_rule"
 	terraformTypeRoute                = "aws_route"
 	terraformTypeRolePolicyAttachment = "aws_iam_role_policy_attachment"
+	terraformTypeNetworkACLRule       = "aws_network_acl_rule"
 )

@@ -46,6 +46,7 @@ type Configuration struct {
 	IPPermissionsEgress   []IPPermission         `json:"ipPermissionsEgress,omitempty"`
 	Routes                []Route                `json:"routes,omitempty"`
 	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
+	Entries               []Entry                `json:"entries,omitempty"`
 }
 
 type SupplementaryConfiguration struct {
@@ -119,4 +120,12 @@ type LaunchTemplateSpecification struct {
 type ResourcePair struct {
 	ResourceType string `json:"resourceType"`
 	ResourceID   string `json:"resourceId"`
+}
+
+type Entry struct {
+	CidrBlock  string `json:"cidrBlock"`
+	Egress     bool   `json:"egress"`
+	Protocol   string `json:"protocol"`
+	RuleAction string `json:"ruleAction"`
+	RuleNumber int64  `json:"ruleNumber"`
 }
