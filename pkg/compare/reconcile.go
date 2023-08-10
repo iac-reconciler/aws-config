@@ -350,6 +350,28 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		// EKS-created SecurityGroups
+		if item.ResourceType == resourceTypeSecurityGroup {
+			var (
+				clusterName string
+			)
+			for tagName, tagValue := range item.Tags {
+				if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
+					clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+				}
+				break
+			}
+			if clusterName != "" {
+				// this is an EKS-created ENI
+				// find the parent, and mark it
+				if resources, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+					}
+				}
+			}
+		}
+
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {
