@@ -430,6 +430,31 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		if item.ResourceType == resourceTypeIAMRole {
+			// look for service-linked roles
+			if strings.HasPrefix(item.Configuration.Path, serviceLinkedRolePathPrefix) {
+				service := strings.TrimPrefix(item.Configuration.Path, serviceLinkedRolePathPrefix)
+				// trim the final / if it exists
+				if service[len(service)-1] == '/' {
+					service = service[:len(service)-1]
+				}
+
+				// this is the name of the role; create a parent for this IAM Role as that service
+				if _, ok := itemToLocation[resourceTypeService]; !ok {
+					itemToLocation[resourceTypeService] = make(map[string]*LocatedItem)
+				}
+				if _, ok := itemToLocation[resourceTypeService][service]; !ok {
+					itemToLocation[resourceTypeService][service] = &LocatedItem{
+						ConfigurationItem: &load.ConfigurationItem{
+							ResourceType: resourceTypeService,
+							ResourceID:   service,
+						},
+					}
+				}
+				located.parent = itemToLocation[resourceTypeService][service]
+			}
+		}
+
 		// ENIs that are owned by an ELB
 		if item.ResourceType == resourceTypeENI {
 			switch {

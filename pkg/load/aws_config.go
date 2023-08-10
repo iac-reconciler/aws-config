@@ -47,6 +47,7 @@ type Configuration struct {
 	Routes                []Route                `json:"routes,omitempty"`
 	LaunchTemplateConfigs []LaunchTemplateConfig `json:"LaunchTemplateConfigs,omitempty"`
 	Entries               []Entry                `json:"entries,omitempty"`
+	Path                  string                 `json:"path,omitempty"`
 }
 
 type SupplementaryConfiguration struct {

@@ -30,6 +30,7 @@ const (
 	resourceTypeTransitGatewayAttachment = "AWS::EC2::TransitGatewayAttachment"
 	resourceTypeNetworkACL               = "AWS::EC2::NetworkAcl"
 	resourceTypeNetworkACLRule           = "AWS::EC2::NetworkAclEntry"
+	resourceTypeService                  = "AWS::Service"
 	eksEniOwnerTagName                   = "eks:eni:owner"
 	eksEniOwnerTagValue                  = "eks-vpc-resource-controller"
 	terraformIAMPolicyType               = "aws_iam_policy"
@@ -53,6 +54,7 @@ const (
 	dimensionLoadBalancerName            = "LoadBalancerName"
 	ingress                              = "ingress"
 	egress                               = "egress"
+	serviceLinkedRolePathPrefix          = "/aws-service-role/"
 
 	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]`
 	terraformAWSProvider              = "provider.aws"
