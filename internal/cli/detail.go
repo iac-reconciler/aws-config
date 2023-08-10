@@ -81,17 +81,18 @@ func detail() *cobra.Command {
 				if item.ResourceType != detail {
 					continue
 				}
-				fmt.Printf("%s %s %s %s %v",
+				var line strings.Builder
+				line.WriteString(fmt.Sprintf("%s %s %s %s %v",
 					item.ResourceType,
 					item.ResourceName,
 					item.ResourceID,
 					item.ARN,
 					item.Owned(),
-				)
+				))
 				for _, key := range compare.SourceKeys {
-					fmt.Printf(" %v", item.Source(key))
+					line.WriteString(fmt.Sprintf(" %v", item.Source(key)))
 				}
-				fmt.Println()
+				fmt.Println(line.String())
 			}
 
 			// no error
