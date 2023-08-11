@@ -599,6 +599,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					// check if the security group exists
 					var (
 						securityGroupID string
+						securityGroup   *LocatedItem
 					)
 					securityGroupIDPtr := instance.Attributes["security_group_id"]
 					if securityGroupIDPtr != nil {
@@ -608,14 +609,14 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					// find the security group in Config based on the ID
 					if securityGroupID != "" {
 						// if we could not find the security group, then nothing to look for in Config; it only is in terraform
-						if item, ok = itemToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
-							if item, ok = nameToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
-								item = nil
+						if securityGroup, ok = itemToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
+							if securityGroup, ok = nameToLocation[resourceTypeSecurityGroup][securityGroupID]; !ok {
+								securityGroup = nil
 							}
 						}
 					}
 					// we found the parent security group, look through the rules and find the one that matches
-					if item != nil {
+					if securityGroup != nil {
 						typePtr := instance.Attributes["type"]
 						var (
 							ruleType string
@@ -626,7 +627,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						switch ruleType {
 						case ingress:
 							// find the rule in the security group
-							for _, rule := range item.Configuration.IPPermissions {
+							for _, rule := range securityGroup.Configuration.IPPermissions {
 								if rule.FromPort != instance.Attributes["from_port"] ||
 									rule.ToPort != instance.Attributes["to_port"] ||
 									rule.IPProtocol != instance.Attributes["protocol"] {
@@ -647,7 +648,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							}
 						case egress:
 							// find the rule in the security group
-							for _, rule := range item.Configuration.IPPermissionsEgress {
+							for _, rule := range securityGroup.Configuration.IPPermissionsEgress {
 								if rule.FromPort != instance.Attributes["from_port"] ||
 									rule.ToPort != instance.Attributes["to_port"] ||
 									rule.IPProtocol != instance.Attributes["protocol"] {
@@ -675,25 +676,26 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				case terraformTypeRoute, resourceTypeRoute:
 					// check if the route table exists
 					var (
-						routeTable string
+						routeTableID string
+						routeTable   *LocatedItem
 					)
 					routeTablePtr := instance.Attributes["route_table_id"]
 					if routeTablePtr != nil {
-						routeTable = routeTablePtr.(string)
+						routeTableID = routeTablePtr.(string)
 					}
 
 					// find the route table in Config based on the ID
-					if routeTable != "" {
+					if routeTableID != "" {
 						// if we could not find the route table, then nothing to look for in Config; it only is in terraform
-						if item, ok = itemToLocation[resourceTypeRouteTable][routeTable]; !ok {
-							if item, ok = nameToLocation[resourceTypeRouteTable][routeTable]; !ok {
-								item = nil
+						if routeTable, ok = itemToLocation[resourceTypeRouteTable][routeTableID]; !ok {
+							if routeTable, ok = nameToLocation[resourceTypeRouteTable][routeTableID]; !ok {
+								routeTable = nil
 							}
 						}
 					}
 					// we found the parent route table, look through the routes and find the one that matches
-					if item != nil {
-						for _, route := range item.Configuration.Routes {
+					if routeTable != nil {
+						for _, route := range routeTable.Configuration.Routes {
 							if route.DestinationCIDRBlock == instance.Attributes["destination_cidr_block"] &&
 								route.Origin == instance.Attributes["origin"] &&
 								route.VPCPeeringConnectionID == instance.Attributes["vpc_peering_connection_id"] &&
