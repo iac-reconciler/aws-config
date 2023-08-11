@@ -455,7 +455,20 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
-		// ENIs that are owned by an ELB
+		// RDS Cluster Snapshots are owned by the clusters
+		if item.ResourceType == resourceTypeRDSClusterSnapshot {
+			if _, ok := itemToLocation[resourceTypeRDSCluster]; ok {
+				if cluster, ok := itemToLocation[resourceTypeRDSCluster][item.Configuration.DBClusterIdentifier]; ok {
+					located.parent = cluster
+				} else {
+					if cluster, ok := nameToLocation[resourceTypeRDSCluster][item.Configuration.DBClusterIdentifier]; ok {
+						located.parent = cluster
+					}
+				}
+			}
+		}
+
+		// ENIs that are owned by an ELB and other resources
 		if item.ResourceType == resourceTypeENI {
 			switch {
 			case item.Configuration.InterfaceType == lambdaInterfaceType && strings.HasPrefix(item.Configuration.Description, lambdaPrefix):

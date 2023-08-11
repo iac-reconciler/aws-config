@@ -49,6 +49,7 @@ type Configuration struct {
 	Entries               []Entry                `json:"entries,omitempty"`
 	Path                  string                 `json:"path,omitempty"`
 	TargetGroupARNs       []string               `json:"targetGroupARNs,omitempty"`
+	DBClusterIdentifier   string                 `json:"dbclusterIdentifier,omitempty"`
 }
 
 type SupplementaryConfiguration struct {

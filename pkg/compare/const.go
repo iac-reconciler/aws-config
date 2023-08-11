@@ -30,6 +30,8 @@ const (
 	resourceTypeTransitGatewayAttachment = "AWS::EC2::TransitGatewayAttachment"
 	resourceTypeNetworkACL               = "AWS::EC2::NetworkAcl"
 	resourceTypeNetworkACLRule           = "AWS::EC2::NetworkAclEntry"
+	resourceTypeRDSCluster               = "AWS::RDS::DBCluster"
+	resourceTypeRDSClusterSnapshot       = "AWS::RDS::DBClusterSnapshot"
 	resourceTypeService                  = "AWS::Service"
 	eksEniOwnerTagName                   = "eks:eni:owner"
 	eksEniOwnerTagValue                  = "eks-vpc-resource-controller"
