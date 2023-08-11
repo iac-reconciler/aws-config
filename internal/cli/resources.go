@@ -77,7 +77,7 @@ func resources() *cobra.Command {
 				results = summary.ByType
 			}
 
-			fmt.Printf("ResourceType Total (Config-Only) (Config+IaC) %s\n", strings.Join(compare.SourceKeys, " "))
+			fmt.Printf("ResourceType Total Single-Only Both %s\n", strings.Join(compare.SourceKeys, " "))
 			for _, item := range results {
 				fmt.Printf("%s: %d %d %d ",
 					item.ResourceType,
