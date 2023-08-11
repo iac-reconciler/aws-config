@@ -474,7 +474,29 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
-		// ELBv2 that is created by EKS
+		// EKS-created ELB
+		if item.ResourceType == resourceTypeELB {
+			var (
+				clusterName string
+			)
+			for tagName, tagValue := range item.Tags {
+				if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
+					clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+				}
+				break
+			}
+			if clusterName != "" {
+				// this is an EKS-created ELB
+				// find the parent, and mark it
+				if resources, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+					}
+				}
+			}
+		}
+
+		// EKS-created ELBv2
 		if item.ResourceType == resourceTypeELBV2 {
 			var clusterName string
 			for tagName, tagValue := range item.Tags {
