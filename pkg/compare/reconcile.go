@@ -598,12 +598,54 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 				case terraformTypeSecurityGroupRule:
 					// check if the security group exists
 					var (
-						securityGroupID string
-						securityGroup   *LocatedItem
+						securityGroupID       string
+						securityGroup         *LocatedItem
+						fromPort, toPort      int64
+						protocol              string
+						description           string
+						sourceSecurityGroupID string
+						IPv4Range             []string
+						IPv6Range             []string
 					)
 					securityGroupIDPtr := instance.Attributes["security_group_id"]
 					if securityGroupIDPtr != nil {
 						securityGroupID = securityGroupIDPtr.(string)
+					}
+					fromPortPtr := instance.Attributes["from_port"]
+					if fromPortPtr != nil {
+						fromPortFloat := fromPortPtr.(float64)
+						fromPort = int64(fromPortFloat)
+					}
+					toPortPtr := instance.Attributes["to_port"]
+					if toPortPtr != nil {
+						toPortFloat := toPortPtr.(float64)
+						toPort = int64(toPortFloat)
+					}
+					protocolPtr := instance.Attributes["protocol"]
+					if protocolPtr != nil {
+						protocol = protocolPtr.(string)
+					}
+					descriptionPtr := instance.Attributes["description"]
+					if descriptionPtr != nil {
+						description = descriptionPtr.(string)
+					}
+					sourceSecurityGroupIDPtr := instance.Attributes["source_security_group_id"]
+					if sourceSecurityGroupIDPtr != nil {
+						sourceSecurityGroupID = sourceSecurityGroupIDPtr.(string)
+					}
+					IPv4RangePtr := instance.Attributes["cidr_blocks"]
+					if IPv4RangePtr != nil {
+						IPv4RangeIface := IPv4RangePtr.([]interface{})
+						for _, IPv4RangeIface := range IPv4RangeIface {
+							IPv4Range = append(IPv4Range, IPv4RangeIface.(string))
+						}
+					}
+					IPv6RangePtr := instance.Attributes["ipv6_cidr_blocks"]
+					if IPv6RangePtr != nil {
+						IPv6RangeIface := IPv6RangePtr.([]interface{})
+						for _, IPv6RangeIface := range IPv6RangeIface {
+							IPv6Range = append(IPv6Range, IPv6RangeIface.(string))
+						}
 					}
 
 					// find the security group in Config based on the ID
@@ -624,54 +666,88 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						if typePtr != nil {
 							ruleType = typePtr.(string)
 						}
+						var ruleset []load.IPPermission
 						switch ruleType {
 						case ingress:
-							// find the rule in the security group
-							for _, rule := range securityGroup.Configuration.IPPermissions {
-								if rule.FromPort != instance.Attributes["from_port"] ||
-									rule.ToPort != instance.Attributes["to_port"] ||
-									rule.IPProtocol != instance.Attributes["protocol"] {
-									continue
-								}
-								for _, pair := range rule.UserIDGroupPairs {
-									if pair.GroupID != instance.Attributes["source_security_group_id"] ||
-										pair.Description != instance.Attributes["description"] {
-										continue
-									}
-									// we have a match
-									parentFound = true
-									break
-								}
-								if parentFound {
-									break
-								}
-							}
+							ruleset = securityGroup.Configuration.IPPermissions
 						case egress:
-							// find the rule in the security group
-							for _, rule := range securityGroup.Configuration.IPPermissionsEgress {
-								if rule.FromPort != instance.Attributes["from_port"] ||
-									rule.ToPort != instance.Attributes["to_port"] ||
-									rule.IPProtocol != instance.Attributes["protocol"] {
-									continue
-								}
-								for _, pair := range rule.UserIDGroupPairs {
-									if pair.GroupID != instance.Attributes["source_security_group_id"] ||
-										pair.Description != instance.Attributes["description"] {
-										continue
-									}
-									// we have a match
-									parentFound = true
-									break
-								}
-								if parentFound {
-									break
-								}
-							}
-
+							ruleset = securityGroup.Configuration.IPPermissionsEgress
 						default:
 							// unknown rule type, so just skip it
 							log.Warnf("unknown security group rule type %s for resource %d, instance %d in file %s", ruleType, i, j, statefile)
+							continue
 						}
+						// find the rule in the security group
+						for _, rule := range ruleset {
+							if rule.FromPort != fromPort ||
+								rule.ToPort != toPort ||
+								rule.IPProtocol != protocol {
+								continue
+							}
+							// can match either via CIDR or via security group
+							for _, pair := range rule.UserIDGroupPairs {
+								if pair.GroupID != sourceSecurityGroupID ||
+									pair.Description != description {
+									continue
+								}
+								// we have a match
+								parentFound = true
+								break
+							}
+							// match the various IPv4 ranges and IPv6 ranges
+							// this is a bit trickier, as it is not a one-to-one match between lists,
+							// i.e. it isn't "list of 5 = list of 5"; rather, we just need to determine
+							// if the items in the 5 in the statefile are covered by at least 5 in the config
+							var ip4map = make(map[string]bool)
+							for _, ipRange := range IPv4Range {
+								ip4map[ipRange] = false
+							}
+							for _, ipRange := range rule.IPV4Ranges {
+								if ipRange.Description != description {
+									continue
+								}
+								// does this IP exist in our requirements?
+								if _, ok := ip4map[ipRange.CIDRIP]; ok {
+									// yes, so mark it as found
+									ip4map[ipRange.CIDRIP] = true
+								}
+							}
+
+							var ip6map = make(map[string]bool)
+							for _, ipRange := range IPv6Range {
+								ip6map[ipRange] = false
+							}
+							for _, ipRange := range rule.IPV6Ranges {
+								if ipRange.Description != description {
+									continue
+								}
+								// does this IP exist in our requirements?
+								if _, ok := ip6map[ipRange.CIDRIP]; ok {
+									// yes, so mark it as found
+									ip6map[ipRange.CIDRIP] = true
+								}
+							}
+							found := true
+							for _, ipFound := range ip4map {
+								if !ipFound {
+									found = false
+									break
+								}
+							}
+							for _, ipFound := range ip6map {
+								if !ipFound {
+									found = false
+									break
+								}
+							}
+							if !found && !parentFound {
+								continue
+							}
+							// we have a match
+							parentFound = true
+							break
+						}
+
 					}
 				case terraformTypeRoute, resourceTypeRoute:
 					// check if the route table exists

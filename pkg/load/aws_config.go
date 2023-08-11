@@ -86,11 +86,13 @@ type IPPermission struct {
 	IPProtocol       string            `json:"ipProtocol"`
 	IPRanges         []string          `json:"ipRanges"`
 	IPV4Ranges       []IPV4Range       `json:"ipv4Ranges"`
+	IPV6Ranges       []IPV4Range       `json:"ipv6Ranges"`
 	UserIDGroupPairs []UserIDGroupPair `json:"userIdGroupPairs"`
 }
 
 type IPV4Range struct {
-	CIDRIP string `json:"cidrIp"`
+	CIDRIP      string `json:"cidrIp"`
+	Description string `json:"description,omitempty"`
 }
 
 type UserIDGroupPair struct {
