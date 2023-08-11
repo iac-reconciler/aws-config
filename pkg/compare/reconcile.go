@@ -798,7 +798,7 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 					// we found the parent ASG, look through the attachments and find the one that matches
 					if asg != nil {
 						for _, tg := range asg.Configuration.TargetGroupARNs {
-							if tg == instance.Attributes["alb_target_group_arn"] {
+							if tg == instance.Attributes["alb_target_group_arn"] || tg == instance.Attributes["lb_target_group_arn"] {
 								parentFound = true
 								break
 							}
