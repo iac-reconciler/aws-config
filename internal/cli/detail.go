@@ -50,20 +50,29 @@ func detail() *cobra.Command {
 			// print the detail
 			sort.Slice(results, func(i, j int) bool {
 				var retVal bool
+				iType, jType := results[i].ResourceType, results[j].ResourceType
+				iName, jName := results[i].ResourceName, results[j].ResourceName
+				iID, jID := results[i].ResourceID, results[j].ResourceID
 				if strings.HasPrefix(sortBy, "count-") {
 					key := strings.TrimPrefix(sortBy, "count-")
 					iValue := results[i].Source(key)
 					jValue := results[j].Source(key)
 					switch {
 					case iValue == jValue:
-						retVal = true
+						// if the values of the fields are the same, sort
+						// by name or by ID
+						if iName == jName {
+							retVal = iID < jID
+						} else {
+							retVal = iName < jName
+						}
 					case iValue:
 						retVal = true
 					default:
 						retVal = false
 					}
 				} else {
-					retVal = results[i].ResourceType < results[j].ResourceType
+					retVal = iType < jType
 				}
 				if descending {
 					retVal = !retVal
