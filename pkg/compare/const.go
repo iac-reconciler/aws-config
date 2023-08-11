@@ -58,6 +58,7 @@ const (
 	ingress                              = "ingress"
 	egress                               = "egress"
 	serviceLinkedRolePathPrefix          = "/aws-service-role/"
+	eksELBCluster                        = "elbv2.k8s.aws/cluster"
 
 	terraformAWSRegistryProvider      = `provider["registry.terraform.io/hashicorp/aws"]`
 	terraformAWSProvider              = "provider.aws"

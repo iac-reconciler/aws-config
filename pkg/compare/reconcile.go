@@ -474,6 +474,33 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 			}
 		}
 
+		// ELBv2 that is created by EKS
+		if item.ResourceType == resourceTypeELBV2 {
+			var clusterName string
+			for tagName, tagValue := range item.Tags {
+				if tagName == eksELBCluster {
+					clusterName = tagValue
+					break
+				}
+			}
+			if clusterName != "" {
+				// this is an EKS-created ELB
+				// find the parent, and mark it
+				if resources, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+						continue
+					}
+				}
+				// did not find it? try by name
+				if resources, ok := nameToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+					}
+				}
+			}
+		}
+
 		// RDS Cluster Snapshots are owned by the clusters
 		if item.ResourceType == resourceTypeRDSClusterSnapshot {
 			if _, ok := itemToLocation[resourceTypeRDSCluster]; ok {
