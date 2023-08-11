@@ -811,11 +811,8 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 						}
 					}
 				}
-				// if we could not find the security group, then nothing to look for in Config; it only is in terraform
 				// It is found if we found the item, or if we found a parent.
 				if item == nil && !parentFound {
-					// if we could not find it by ARN or by configType+id or configType+name, then
-					// it is only in terraform
 					item = &LocatedItem{
 						ConfigurationItem: &load.ConfigurationItem{
 							ResourceType: configType,
