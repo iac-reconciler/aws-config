@@ -324,6 +324,25 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 
 		// EC2-instance owned volumes
 		if item.ResourceType == resourceTypeEBSVolume {
+			// in cases where it is explicitly owned by an EKS cluster
+			var clusterName string
+			for tagName, tagValue := range item.Tags {
+				if strings.HasPrefix(tagName, eksClusterOwnerTagNamePrefix) && tagValue == owned {
+					clusterName = strings.TrimPrefix(tagName, eksClusterOwnerTagNamePrefix)
+				}
+				break
+			}
+			if clusterName != "" {
+				// this is an EKS-created ENI
+				// find the parent, and mark it
+				if resources, ok := itemToLocation[resourceTypeEksCluster]; ok {
+					if parent, ok := resources[clusterName]; ok {
+						located.parent = parent
+					}
+				}
+				continue
+			}
+
 			// indicate that it is owned by whatever it is attached to
 			for _, resource := range item.Relationships {
 				if resource.ResourceType == "" {
