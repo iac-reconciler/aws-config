@@ -50,6 +50,7 @@ type Configuration struct {
 	Path                  string                 `json:"path,omitempty"`
 	TargetGroupARNs       []string               `json:"targetGroupARNs,omitempty"`
 	DBClusterIdentifier   string                 `json:"dbclusterIdentifier,omitempty"`
+	LoadBalancerARN       string                 `json:"LoadBalancerARN,omitempty"`
 }
 
 type SupplementaryConfiguration struct {

@@ -912,6 +912,10 @@ func Reconcile(snapshot load.Snapshot, tfstates map[string]load.TerraformState) 
 							}
 						}
 					}
+
+				case terraformTypeRoute53RecordSet, resourceTypeRoute53RecordSet:
+					// route53 record sets are not yet supported in AWS Config
+					parentFound = true
 				default:
 					if item, ok = itemToLocation[configType][key]; !ok {
 						if item, ok = nameToLocation[configType][name]; !ok {

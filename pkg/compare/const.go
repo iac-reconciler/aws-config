@@ -32,6 +32,7 @@ const (
 	resourceTypeNetworkACLRule           = "AWS::EC2::NetworkAclEntry"
 	resourceTypeRDSCluster               = "AWS::RDS::DBCluster"
 	resourceTypeRDSClusterSnapshot       = "AWS::RDS::DBClusterSnapshot"
+	resourceTypeRoute53RecordSet         = "AWS::Route53::RecordSet"
 	resourceTypeService                  = "AWS::Service"
 	eksEniOwnerTagName                   = "eks:eni:owner"
 	eksEniOwnerTagValue                  = "eks-vpc-resource-controller"
@@ -65,4 +66,5 @@ const (
 	terraformTypeRolePolicyAttachment = "aws_iam_role_policy_attachment"
 	terraformTypeNetworkACLRule       = "aws_network_acl_rule"
 	terraformTypeASGAttachment        = "aws_autoscaling_attachment"
+	terraformTypeRoute53RecordSet     = "aws_route53_record"
 )
