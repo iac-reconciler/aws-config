@@ -33,19 +33,29 @@ func detail() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "detail",
-		Short:   "show detail for a specific resource in the sources",
-		Long:    `Show detail for a specific resource in the sources.`,
-		Example: `  aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate> AWS::EC2::Volume`,
-		Args:    cobra.ExactArgs(1),
+		Use:   "detail",
+		Short: "show details for specific resources in the sources",
+		Long: `Show detail for specific resources in the sources. By default, shows all resources.
+		Can be restricted to just one or a few resource types.`,
+		Example: `
+		aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate>
+		aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate> AWS::EC2::Volume
+		aws-config detail --aws-config <aws-config-snapshot.json> --terraform <terraform.tfstate> AWS::EC2::Volume AWS::EC2::RouteTable
+		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			detail := args[0]
+			resource := make(map[string]bool)
+			for _, arg := range args {
+				resource[arg] = true
+			}
+			hasRestrictions := len(resource) > 0
 			var results []*compare.LocatedItem
 			for _, item := range items {
-				if item.ResourceType != detail {
+				if item.Ephemeral() {
 					continue
 				}
-				results = append(results, item)
+				if !hasRestrictions || resource[item.ResourceType] {
+					results = append(results, item)
+				}
 			}
 			// print the detail
 			sort.Slice(results, func(i, j int) bool {
@@ -87,9 +97,6 @@ func detail() *cobra.Command {
 			}
 			fmt.Printf("ResourceType ResourceName ResourceID ARN owned %s\n", strings.Join(compare.SourceKeys, " "))
 			for _, item := range results {
-				if item.ResourceType != detail || item.Ephemeral() {
-					continue
-				}
 				var line strings.Builder
 				line.WriteString(fmt.Sprintf("%s %s %s %s %v",
 					item.ResourceType,
