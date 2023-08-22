@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/iac-reconciler/aws-config/pkg/compare"
 	"github.com/spf13/cobra"
@@ -28,6 +29,7 @@ func detail() *cobra.Command {
 		formatSpaceSep = "space-separated"
 		formatCSV      = "csv"
 		formatTabSep   = "tab-separated"
+		formatTable    = "table"
 		formatDefault  = formatSpaceSep
 	)
 	var sortOptions = []string{
@@ -41,6 +43,7 @@ func detail() *cobra.Command {
 		formatSpaceSep,
 		formatTabSep,
 		formatCSV,
+		formatTable,
 	}
 
 	cmd := &cobra.Command{
@@ -106,18 +109,26 @@ func detail() *cobra.Command {
 			case top < 0:
 				results = results[len(results)+top:]
 			}
-			printer := csv.NewWriter(cmd.OutOrStdout())
-			defer printer.Flush()
+			var printer *csv.Writer
 			switch format {
 			case formatSpaceSep:
+				printer = csv.NewWriter(cmd.OutOrStdout())
 				printer.Comma = ' '
 			case formatTabSep:
+				printer = csv.NewWriter(cmd.OutOrStdout())
 				printer.Comma = '\t'
 			case formatCSV:
+				printer = csv.NewWriter(cmd.OutOrStdout())
 				printer.Comma = ','
+			case formatTable:
+				tw := tabwriter.NewWriter(cmd.OutOrStdout(), 10, 1, 1, ' ', tabwriter.Debug)
+				defer tw.Flush()
+				printer = csv.NewWriter(tw)
+				printer.Comma = '\t'
 			default:
 				return fmt.Errorf("invalid format: %s", format)
 			}
+			defer printer.Flush()
 			headerRow := []string{"ResourceType", "ResourceName", "ResourceID", "ARN", "owned"}
 			headerRow = append(headerRow, compare.SourceKeys...)
 			printer.Write(headerRow)
