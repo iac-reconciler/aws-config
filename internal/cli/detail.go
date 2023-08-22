@@ -108,17 +108,17 @@ func detail() *cobra.Command {
 			var printer printer
 			switch format {
 			case formatSpaceSep:
-				printer = spaceSepPrinter{}
+				printer = spaceSepPrinter
 			case formatTabSep:
-				printer = tabSepPrinter{}
+				printer = tabSepPrinter
 			case formatCSV:
-				printer = csvPrinter{}
+				printer = csvPrinter
 			default:
 				return fmt.Errorf("invalid format: %s", format)
 			}
 			headerRow := []string{"ResourceType", "ResourceName", "ResourceID", "ARN", "owned"}
 			headerRow = append(headerRow, compare.SourceKeys...)
-			printer.printRow(headerRow)
+			printer(headerRow)
 			for _, item := range results {
 				var row []string
 				entries := []string{
@@ -137,7 +137,7 @@ func detail() *cobra.Command {
 				for _, key := range compare.SourceKeys {
 					row = append(row, fmt.Sprintf("%v", item.Source(key)))
 				}
-				printer.printRow(row)
+				printer(row)
 			}
 
 			// no error
@@ -152,24 +152,16 @@ func detail() *cobra.Command {
 	return cmd
 }
 
-type printer interface {
-	printRow(row []string)
-}
+type printer func(row []string)
 
-type spaceSepPrinter struct{}
-
-func (s spaceSepPrinter) printRow(row []string) {
+func spaceSepPrinter(row []string) {
 	fmt.Println(strings.Join(row, " "))
 }
 
-type tabSepPrinter struct{}
-
-func (s tabSepPrinter) printRow(row []string) {
+func tabSepPrinter(row []string) {
 	fmt.Println(strings.Join(row, "\t"))
 }
 
-type csvPrinter struct{}
-
-func (s csvPrinter) printRow(row []string) {
+func csvPrinter(row []string) {
 	fmt.Println(strings.Join(row, ","))
 }
