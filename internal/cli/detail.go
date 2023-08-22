@@ -120,12 +120,19 @@ func detail() *cobra.Command {
 			headerRow = append(headerRow, compare.SourceKeys...)
 			printer.printRow(headerRow)
 			for _, item := range results {
-				row := []string{
+				var row []string
+				entries := []string{
 					item.ResourceType,
 					item.ResourceName,
 					item.ResourceID,
 					item.ARN,
 					fmt.Sprintf("%v", item.Owned()),
+				}
+				for _, key := range entries {
+					if key == "" {
+						key = "-"
+					}
+					row = append(row, key)
 				}
 				for _, key := range compare.SourceKeys {
 					row = append(row, fmt.Sprintf("%v", item.Source(key)))
