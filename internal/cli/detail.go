@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/csv"
 	"fmt"
 	"sort"
 	"strings"
@@ -105,20 +106,21 @@ func detail() *cobra.Command {
 			case top < 0:
 				results = results[len(results)+top:]
 			}
-			var printer printer
+			printer := csv.NewWriter(cmd.OutOrStdout())
+			defer printer.Flush()
 			switch format {
 			case formatSpaceSep:
-				printer = spaceSepPrinter
+				printer.Comma = ' '
 			case formatTabSep:
-				printer = tabSepPrinter
+				printer.Comma = '\t'
 			case formatCSV:
-				printer = csvPrinter
+				printer.Comma = ','
 			default:
 				return fmt.Errorf("invalid format: %s", format)
 			}
 			headerRow := []string{"ResourceType", "ResourceName", "ResourceID", "ARN", "owned"}
 			headerRow = append(headerRow, compare.SourceKeys...)
-			printer(headerRow)
+			printer.Write(headerRow)
 			for _, item := range results {
 				var row []string
 				entries := []string{
@@ -137,7 +139,7 @@ func detail() *cobra.Command {
 				for _, key := range compare.SourceKeys {
 					row = append(row, fmt.Sprintf("%v", item.Source(key)))
 				}
-				printer(row)
+				printer.Write(row)
 			}
 
 			// no error
@@ -150,18 +152,4 @@ func detail() *cobra.Command {
 	cmd.Flags().IntVar(&top, "top", 0, "limit to the top x results, use 0 for all, negative for last; for by-type and detail")
 	cmd.Flags().StringVar(&format, "format", formatSpaceSep, "format for printing output, options are: "+strings.Join(formatOptions, " "))
 	return cmd
-}
-
-type printer func(row []string)
-
-func spaceSepPrinter(row []string) {
-	fmt.Println(strings.Join(row, " "))
-}
-
-func tabSepPrinter(row []string) {
-	fmt.Println(strings.Join(row, "\t"))
-}
-
-func csvPrinter(row []string) {
-	fmt.Println(strings.Join(row, ","))
 }
